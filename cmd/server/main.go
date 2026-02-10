@@ -48,7 +48,7 @@ func main() {
 
 func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 	data := map[string]any{
-		"Title": "Master of Games",
+		"Title": "Master of Games!!!",
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := s.tmpl.ExecuteTemplate(w, "base", data); err != nil {
