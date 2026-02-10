@@ -1,0 +1,24 @@
+{{ define "content" }}
+    <section class="card">
+        <h1>It lives 🎉</h1>
+        <p>This is the starter site. Next we’ll add:</p>
+        <ul>
+            <li>Players</li>
+            <li>Game Titles</li>
+            <li>Per-game entry</li>
+            <li>Weekly trophy + yearly Master of Games</li>
+        </ul>
+
+        <div class="row">
+            <a class="btn" href="/healthz">Health check</a>
+
+            <!-- Example HTMX interaction (no backend change yet) -->
+            <button class="btn secondary"
+                    hx-get="/"
+                    hx-target="#main"
+                    hx-swap="innerHTML">
+                Refresh (HTMX)
+            </button>
+        </div>
+    </section>
+{{ end }}

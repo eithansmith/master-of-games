@@ -1,0 +1,6 @@
+/bin/
+/dist/
+/tmp/
+.idea
+*.exe
+.DS_Store
