@@ -24,8 +24,9 @@
     </main>
 
     <footer class="container footer">
-        v{{ .Version }}<br/>
-        built {{ .BuildTime }}
+        version: {{.Version}}<br>
+        {{if ne .BuildTime ""}}built: {{.BuildTime}}<br>{{end}}
+        started: {{.StartTime}}
     </footer>
     </body>
     </html>

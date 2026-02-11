@@ -11,6 +11,7 @@ import (
 var (
 	version   = "dev"
 	buildTime = ""
+	startTime = ""
 )
 
 type Server struct {
@@ -47,9 +48,9 @@ func main() {
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
-	buildTime = time.Now().Format(time.DateTime)
+	startTime = time.Now().Format(time.RFC3339)
 
-	log.Printf("starting master-of-games version=%s buildTime=%s", version, buildTime)
+	log.Printf("starting master-of-games version=%s buildTime=%s startTime=%s", version, buildTime, startTime)
 	log.Fatal(srv.ListenAndServe())
 }
 
@@ -58,6 +59,7 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 		"Title":     "Master of Games",
 		"Version":   version,
 		"BuildTime": buildTime,
+		"StartTime": startTime,
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := s.tmpl.ExecuteTemplate(w, "base", data); err != nil {
