@@ -10,7 +10,7 @@ import (
 
 var (
 	version   = "dev"
-	buildTime = "unknown"
+	buildTime = ""
 )
 
 type Server struct {
@@ -46,6 +46,8 @@ func main() {
 		Handler:           logging(mux),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
+
+	buildTime = time.Now().Format(time.DateTime)
 
 	log.Printf("starting master-of-games version=%s buildTime=%s", version, buildTime)
 	log.Fatal(srv.ListenAndServe())
