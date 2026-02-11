@@ -44,13 +44,14 @@ func main() {
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
-	log.Printf("listening on :%s", addr)
+	log.Printf("starting master-of-games version=%s", version)
 	log.Fatal(srv.ListenAndServe())
 }
 
 func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 	data := map[string]any{
-		"Title": "Master of Games",
+		"Title":   "Master of Games",
+		"Version": version,
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := s.tmpl.ExecuteTemplate(w, "base", data); err != nil {
