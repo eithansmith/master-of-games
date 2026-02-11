@@ -8,7 +8,10 @@ import (
 	"time"
 )
 
-var version = "dev"
+var (
+	version   = "dev"
+	buildTime = "unknown"
+)
 
 type Server struct {
 	tmpl *template.Template
@@ -44,14 +47,15 @@ func main() {
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
-	log.Printf("starting master-of-games version=%s", version)
+	log.Printf("starting master-of-games version=%s buildTime=%s", version, buildTime)
 	log.Fatal(srv.ListenAndServe())
 }
 
 func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 	data := map[string]any{
-		"Title":   "Master of Games",
-		"Version": version,
+		"Title":     "Master of Games",
+		"Version":   version,
+		"BuildTime": buildTime,
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := s.tmpl.ExecuteTemplate(w, "base", data); err != nil {

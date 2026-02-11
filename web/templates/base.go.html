@@ -23,9 +23,10 @@
         {{ template "content" . }}
     </main>
 
-    <footer class="container footer">
-        <small>v{{ .Version }}</small>
-    </footer>
+    <small>
+        v{{ .Version }}<br/>
+        built {{ .BuildTime }}
+    </small>
     </body>
     </html>
 {{ end }}
