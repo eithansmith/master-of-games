@@ -1,24 +1,89 @@
 {{ define "content" }}
     <section class="card">
-        <h1>It lives 🎉</h1>
-        <p>This is the starter site. Next we’ll add:</p>
-        <ul>
-            <li>Players</li>
-            <li>Game Titles</li>
-            <li>Per-game entry</li>
-            <li>Weekly trophy + yearly Master of Games</li>
-        </ul>
+        <h1>Log a game</h1>
 
-        <div class="row">
-            <a class="btn" href="/healthz">Health check</a>
+        {{ if .FormError }}
+            <div class="alert">{{ .FormError }}</div>
+        {{ end }}
 
-            <!-- Example HTMX interaction (no backend change yet) -->
-            <button class="btn secondary"
-                    hx-get="/"
-                    hx-target="#main"
-                    hx-swap="innerHTML">
-                Refresh (HTMX)
-            </button>
-        </div>
+        <form hx-post="/games" hx-target="#main" hx-swap="innerHTML" method="post" class="form">
+            <label>
+                Game title
+                <select name="title" required>
+                    <option value="">Select a game...</option>
+                    {{ range .Titles }}
+                        <option value="{{ . }}">{{ . }}</option>
+                    {{ end }}
+                </select>
+            </label>
+
+            <label>
+                Played at
+                <input type="datetime-local" name="played_at" required />
+                <small class="hint">Weekdays only (Mon–Fri)</small>
+            </label>
+
+            <div class="grid2">
+                <div>
+                    <div class="label">Participants</div>
+                    <div class="chips">
+                        {{ range $idx, $name := .Players }}
+                            <label class="chip">
+                                <input type="checkbox" name="participants" value="{{ $idx }}">
+                                <span>{{ $name }}</span>
+                            </label>
+                        {{ end }}
+                    </div>
+                </div>
+
+                <div>
+                    <div class="label">Winners (can be multiple)</div>
+                    <div class="chips">
+                        {{ range $idx, $name := .Players }}
+                            <label class="chip">
+                                <input type="checkbox" name="winners" value="{{ $idx }}">
+                                <span>{{ $name }}</span>
+                            </label>
+                        {{ end }}
+                    </div>
+                    <small class="hint">Winners must also be selected as participants.</small>
+                </div>
+            </div>
+
+            <div class="row">
+                <button class="btn" type="submit">Add game</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="card" style="margin-top: 12px;">
+        <h1>Recent games</h1>
+
+        {{ if not .Games }}
+            <p>No games yet. Log the first one ☝️</p>
+        {{ else }}
+            <div class="list">
+                {{ range .Games }}
+                    <div class="listitem">
+                        <div class="li-main">
+                            <div class="li-title">{{ .Title }}</div>
+                            <div class="li-sub">{{ .PlayedAt.Format "2006-01-02 15:04" }}</div>
+                            <div class="li-sub">
+                                Winners:
+                                {{ range $i, $wid := .WinnerIDs }}
+                                    {{ if $i }}, {{ end }}
+                                    {{ index $.Players $wid }}
+                                {{ end }}
+                            </div>
+                        </div>
+
+                        <form hx-post="/games/delete" hx-target="#main" hx-swap="innerHTML" method="post">
+                            <input type="hidden" name="id" value="{{ .ID }}">
+                            <button class="btn secondary" type="submit">Delete</button>
+                        </form>
+                    </div>
+                {{ end }}
+            </div>
+        {{ end }}
     </section>
 {{ end }}

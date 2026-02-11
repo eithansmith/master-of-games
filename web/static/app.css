@@ -13,3 +13,40 @@ h1 { margin-top: 0; font-size: 1.4rem; }
 }
 .btn.secondary { background: #0f1621; }
 .footer { opacity: 0.7; padding-top: 6px; padding-bottom: 24px; }
+
+.form label { display:block; margin-top: 10px; }
+select, input[type="datetime-local"] {
+    width: 100%; margin-top: 6px; padding: 10px 12px;
+    border-radius: 12px; border: 1px solid #2a3a50; background: #0b0f14; color: #e8eef6;
+}
+.grid2 { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 10px; }
+@media (min-width: 680px) { .grid2 { grid-template-columns: 1fr 1fr; } }
+
+.label { font-weight: 700; margin-top: 8px; }
+.hint { display:block; opacity: 0.75; margin-top: 6px; }
+
+.chips { display:flex; flex-wrap:wrap; gap: 8px; margin-top: 8px; }
+.chip {
+    display:flex; align-items:center; gap: 8px;
+    padding: 8px 10px; border-radius: 999px;
+    border: 1px solid #2a3a50; background: #0b0f14;
+}
+.chip input { transform: scale(1.1); }
+
+.alert {
+    margin: 10px 0;
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid #623;
+    background: rgba(255, 0, 80, 0.08);
+}
+
+.list { display:flex; flex-direction:column; gap: 10px; margin-top: 10px; }
+.listitem {
+    display:flex; justify-content:space-between; align-items:flex-start; gap: 12px;
+    padding: 12px; border-radius: 14px;
+    border: 1px solid #1e2a3a; background: #0b0f14;
+}
+.li-title { font-weight: 800; }
+.li-sub { opacity: 0.8; margin-top: 4px; font-size: 0.95rem; }
+

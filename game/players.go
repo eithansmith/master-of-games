@@ -1,4 +1,4 @@
-package players
+package game
 
 var Players = []string{
 	"Autumn",

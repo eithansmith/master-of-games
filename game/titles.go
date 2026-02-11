@@ -1,4 +1,4 @@
-package titles
+package game
 
 var Titles = []string{
 	"Bang",
