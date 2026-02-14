@@ -91,7 +91,8 @@
                             </div>
                         </div>
 
-                        <form hx-post="/games/delete" hx-target="#main" hx-swap="innerHTML" method="post">
+                        <form hx-post="/games/delete" hx-target="#main" hx-select="#main" hx-swap="outerHTML"
+                              method="post" hx-confirm="Are you sure you wish to delete this game?">
                             <input type="hidden" name="id" value="{{ .ID }}">
                             <button class="btn secondary" type="submit">Delete</button>
                         </form>
