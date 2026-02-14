@@ -2,6 +2,13 @@ package handlers
 
 import "github.com/eithansmith/master-of-games/game"
 
+type HomeForm struct {
+	Title        string
+	PlayedAt     string
+	Participants map[int]bool
+	Winners      map[int]bool
+}
+
 type HomeVM struct {
 	Title     string
 	Version   string
@@ -14,6 +21,7 @@ type HomeVM struct {
 	Games   []game.Game
 
 	FormError string
+	Form      HomeForm
 }
 
 type WeekVM struct {

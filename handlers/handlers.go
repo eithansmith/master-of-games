@@ -10,19 +10,8 @@ import (
 	"github.com/eithansmith/master-of-games/game"
 )
 
-func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
-	vm := HomeVM{
-		Title:     "Master of Games",
-		Version:   s.meta.Version,
-		BuildTime: s.meta.BuildTime,
-		StartTime: s.meta.StartTime,
-		YearNow:   time.Now().Year(),
-		Players:   game.Players,
-		Titles:    game.Titles,
-		Games:     s.store.RecentGames(25),
-	}
-
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+func (s *Server) handleHome(w http.ResponseWriter, _ *http.Request) {
+	vm := s.newHomeVM()
 	if err := s.r.HTML(w, "home", "home", vm); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -35,41 +24,51 @@ func (s *Server) handleAddGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := r.ParseForm(); err != nil {
-		s.renderHomeWithError(w, "Invalid form submission.")
+		s.renderHomeWithError(w, "Invalid form submission.", s.defaultHomeForm())
 		return
 	}
 
 	title := strings.TrimSpace(r.FormValue("title"))
 	playedAtStr := strings.TrimSpace(r.FormValue("played_at"))
+	if playedAtStr == "" {
+		playedAtStr = time.Now().Format("2006-01-02T15:04")
+	}
 
 	participantIDs := parseIntSlice(r.Form["participants"])
 	winnerIDs := parseIntSlice(r.Form["winners"])
 
+	form := HomeForm{
+		Title:        title,
+		PlayedAt:     playedAtStr,
+		Participants: parseIntMap(r.Form["participants"]),
+		Winners:      parseIntMap(r.Form["winners"]),
+	}
+
 	playedAt, err := time.Parse("2006-01-02T15:04", playedAtStr)
 	if err != nil {
-		s.renderHomeWithError(w, "Please provide a valid date/time.")
+		s.renderHomeWithError(w, "Please provide a valid date/time.", form)
 		return
 	}
 
 	// Validation
 	if title == "" {
-		s.renderHomeWithError(w, "Please choose a game title.")
+		s.renderHomeWithError(w, "Please choose a game title.", form)
 		return
 	}
 	if len(participantIDs) < 2 {
-		s.renderHomeWithError(w, "Please select at least 2 participants.")
+		s.renderHomeWithError(w, "Please select at least 2 participants.", form)
 		return
 	}
 	if len(winnerIDs) < 1 {
-		s.renderHomeWithError(w, "Please select at least 1 winner.")
+		s.renderHomeWithError(w, "Please select at least 1 winner.", form)
 		return
 	}
 	if !game.IsWeekdayLocal(playedAt) {
-		s.renderHomeWithError(w, "Games can only be logged Monday–Friday.")
+		s.renderHomeWithError(w, "Games can only be logged Monday–Friday.", form)
 		return
 	}
 	if !isSubset(winnerIDs, participantIDs) {
-		s.renderHomeWithError(w, "Winners must be a subset of participants.")
+		s.renderHomeWithError(w, "Winners must be a subset of participants.", form)
 		return
 	}
 
@@ -95,7 +94,7 @@ func (s *Server) handleDeleteGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		s.renderHomeWithError(w, "Invalid form submission.")
+		s.renderHomeWithError(w, "Invalid form submission.", s.defaultHomeForm())
 		return
 	}
 
@@ -347,7 +346,15 @@ func (s *Server) renderYear(w http.ResponseWriter, year int, formErr string) {
 	}
 }
 
-func (s *Server) renderHomeWithError(w http.ResponseWriter, msg string) {
+func (s *Server) defaultHomeForm() HomeForm {
+	return HomeForm{
+		PlayedAt:     time.Now().Format("2006-01-02T15:04"),
+		Participants: map[int]bool{},
+		Winners:      map[int]bool{},
+	}
+}
+
+func (s *Server) newHomeVM() HomeVM {
 	vm := HomeVM{
 		Title:     "Master of Games",
 		Version:   s.meta.Version,
@@ -357,8 +364,14 @@ func (s *Server) renderHomeWithError(w http.ResponseWriter, msg string) {
 		Players:   game.Players,
 		Titles:    game.Titles,
 		Games:     s.store.RecentGames(25),
-		FormError: msg,
+		Form:      s.defaultHomeForm(),
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	return vm
+}
+
+func (s *Server) renderHomeWithError(w http.ResponseWriter, msg string, form HomeForm) {
+	vm := s.newHomeVM()
+	vm.FormError = msg
+	vm.Form = form
 	_ = s.r.HTML(w, "home", "home", vm)
 }

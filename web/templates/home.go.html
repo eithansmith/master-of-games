@@ -16,14 +16,14 @@
                 <select name="title" required>
                     <option value="">Select a game...</option>
                     {{ range .Titles }}
-                        <option value="{{ . }}">{{ . }}</option>
+                        <option value="{{ . }}" {{ if eq $.Form.Title . }}selected{{ end }}>{{ . }}</option>
                     {{ end }}
                 </select>
             </label>
 
             <label>
                 Played at
-                <input type="datetime-local" name="played_at" required/>
+                <input type="datetime-local" name="played_at" required value="{{ .Form.PlayedAt }}">
                 <small class="hint">Weekdays only (Mon–Fri)</small>
             </label>
 
@@ -33,7 +33,12 @@
                     <div class="chips">
                         {{ range $idx, $name := .Players }}
                             <label class="chip">
-                                <input type="checkbox" name="participants" value="{{ $idx }}">
+                                <input
+                                        type="checkbox"
+                                        name="participants"
+                                        value="{{ $idx }}"
+                                        {{ if index $.Form.Participants $idx }}checked{{ end }}
+                                >
                                 <span>{{ $name }}</span>
                             </label>
                         {{ end }}
@@ -45,7 +50,12 @@
                     <div class="chips">
                         {{ range $idx, $name := .Players }}
                             <label class="chip">
-                                <input type="checkbox" name="winners" value="{{ $idx }}">
+                                <input
+                                        type="checkbox"
+                                        name="winners"
+                                        value="{{ $idx }}"
+                                        {{ if index $.Form.Winners $idx }}checked{{ end }}
+                                >
                                 <span>{{ $name }}</span>
                             </label>
                         {{ end }}
