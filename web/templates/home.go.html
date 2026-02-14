@@ -1,4 +1,8 @@
-{{ define "content" }}
+{{ define "home" }}
+    {{ template "base" . }}
+{{ end }}
+
+{{ define "main" }}
     <section class="card">
         <h1>Log a game</h1>
 
@@ -6,7 +10,7 @@
             <div class="alert">{{ .FormError }}</div>
         {{ end }}
 
-        <form hx-post="/games" hx-target="#main" hx-swap="innerHTML" method="post" class="form">
+        <form hx-post="/games" hx-target="#main" hx-select="#main" hx-swap="outerHTML" method="post" class="form">
             <label>
                 Game title
                 <select name="title" required>
@@ -19,7 +23,7 @@
 
             <label>
                 Played at
-                <input type="datetime-local" name="played_at" required />
+                <input type="datetime-local" name="played_at" required/>
                 <small class="hint">Weekdays only (Mon–Fri)</small>
             </label>
 

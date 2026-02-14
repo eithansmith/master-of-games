@@ -1,0 +1,85 @@
+{{ define "year" }}
+    {{ template "base" . }}
+{{ end }}
+
+{{ define "main" }}
+    <section class="card">
+        <div class="row" style="justify-content: space-between; align-items: baseline;">
+            <h1 style="margin:0;">Year {{ .Year }}</h1>
+            <a class="btn secondary" href="/years/{{ .YearNow }}">Current</a>
+        </div>
+
+        {{ if .FormError }}
+            <div class="alert">{{ .FormError }}</div>
+        {{ end }}
+
+        <div style="margin-top: 10px;">
+            <div class="label">Master of Games</div>
+
+            {{ if .WinnerID }}
+                <div class="trophy">
+                    🏆 {{ index .Players (derefInt .WinnerID) }}
+                </div>
+            {{ else if gt (len .TopIDs) 1 }}
+                <div class="trophy">🤝 Tie (unresolved)</div>
+
+                <p class="hint" style="margin-top: 8px;">
+                    Tied leaders:
+                    {{ range $i, $pid := .TopIDs }}
+                        {{ if $i }}, {{ end }}{{ index $.Players $pid }}
+                    {{ end }}
+                </p>
+
+                <form hx-post="/years/{{ .Year }}/tiebreak"
+                      hx-target="#main"
+                      hx-select="#main"
+                      hx-swap="outerHTML"
+                      method="post"
+                      style="margin-top: 10px;">
+
+                    <label>
+                        Resolve by Game of Chance — choose winner:
+                        <select name="winner_id" required>
+                            <option value="">Select...</option>
+                            {{ range .TopIDs }}
+                                <option value="{{ . }}">{{ index $.Players . }}</option>
+                            {{ end }}
+                        </select>
+                    </label>
+
+                    <div class="row">
+                        <button class="btn" type="submit">Record tiebreaker</button>
+                    </div>
+                </form>
+            {{ else }}
+                <p class="hint">No winner yet (not enough games / stats).</p>
+            {{ end }}
+        </div>
+    </section>
+
+    <section class="card" style="margin-top: 12px;">
+        <h1>Attendance + Win Rate</h1>
+        <p class="hint">
+            Rule: qualify by attendance (top half), then winner is highest win rate (wins / games played).
+        </p>
+
+        <div class="list">
+            {{ range .Stats }}
+                <div class="listitem">
+                    <div class="li-main">
+                        <div class="li-title">
+                            {{ index $.Players .PlayerID }}
+                            {{ if .Qualified }} <span class="pill">Qualified</span>{{ end }}
+                        </div>
+                        <div class="li-sub">
+                            Attendance: {{ .Attendance }} |
+                            Played: {{ .GamesPlayed }} |
+                            Wins: {{ .Wins }} |
+                            Win rate: {{ printf "%.3f" .WinRate }}
+                        </div>
+                    </div>
+                </div>
+            {{ end }}
+        </div>
+    </section>
+{{ end }}

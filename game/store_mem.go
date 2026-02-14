@@ -11,11 +11,18 @@ type MemoryStore struct {
 	mu     sync.Mutex
 	nextID int64
 	games  []Game
+
+	tiebreakers map[string]Tiebreaker // key = scope + "|" + scopeKey
 }
 
 func NewMemoryStore() *MemoryStore {
-	return &MemoryStore{nextID: 1}
+	return &MemoryStore{
+		nextID:      1,
+		tiebreakers: map[string]Tiebreaker{},
+	}
 }
+
+func tbKey(scope, scopeKey string) string { return scope + "|" + scopeKey }
 
 func (s *MemoryStore) AddGame(g Game) Game {
 	s.mu.Lock()
@@ -68,4 +75,17 @@ func IsWeekdayLocal(t time.Time) bool {
 	// Using local time; later we can set a fixed location if you want.
 	wd := t.Weekday()
 	return wd >= time.Monday && wd <= time.Friday
+}
+
+func (s *MemoryStore) GetTiebreaker(scope, scopeKey string) (Tiebreaker, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	tb, ok := s.tiebreakers[tbKey(scope, scopeKey)]
+	return tb, ok
+}
+
+func (s *MemoryStore) SetTiebreaker(tb Tiebreaker) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.tiebreakers[tbKey(tb.Scope, tb.ScopeKey)] = tb
 }

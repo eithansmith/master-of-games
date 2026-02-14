@@ -1,0 +1,83 @@
+{{ define "week" }}
+    {{ template "base" . }}
+{{ end }}
+
+{{ define "main" }}
+    <section class="card">
+        <div class="row" style="justify-content: space-between; align-items: baseline;">
+            <h1 style="margin:0;">Week {{ .Year }}-W{{ printf "%02d" .Week }}</h1>
+            <a class="btn secondary" href="/weeks/current">Current</a>
+        </div>
+
+        {{ if .FormError }}
+            <div class="alert">{{ .FormError }}</div>
+        {{ end }}
+
+        {{ if eq .TotalGames 0 }}
+            <p style="margin-top: 10px;">No Trophy Awarded — no games played (Mon–Fri).</p>
+        {{ else }}
+            <div style="margin-top: 10px;">
+                <div class="label">This week’s trophy</div>
+
+                {{ if .WinnerID }}
+                    <div class="trophy">
+                        🏆 {{ index .Players (derefInt .WinnerID) }}
+                    </div>
+                {{ else }}
+                    <div class="trophy">
+                        🤝 Tie (unresolved)
+                    </div>
+
+                    <p class="hint" style="margin-top: 8px;">
+                        Tied leaders:
+                        {{ range $i, $pid := .TopIDs }}
+                            {{ if $i }}, {{ end }}{{ index $.Players $pid }}
+                        {{ end }}
+                    </p>
+
+                    <form hx-post="/weeks/{{ .Year }}/{{ .Week }}/tiebreak"
+                          hx-target="#main"
+                          hx-swap="innerHTML"
+                          method="post"
+                          style="margin-top: 10px;">
+
+                        <label>
+                            Resolve by Game of Chance — choose winner:
+                            <select name="winner_id" required>
+                                <option value="">Select...</option>
+                                {{ range .TopIDs }}
+                                    <option value="{{ . }}">{{ index $.Players . }}</option>
+                                {{ end }}
+                            </select>
+                        </label>
+
+                        <div class="row">
+                            <button class="btn" type="submit">Record tiebreaker</button>
+                        </div>
+                    </form>
+                {{ end }}
+
+                <p class="hint">Total games (Mon–Fri): <strong>{{ .TotalGames }}</strong></p>
+            </div>
+        {{ end }}
+    </section>
+
+    <section class="card" style="margin-top: 12px;">
+        <h1>Wins</h1>
+
+        <div class="list">
+            {{ range $idx, $name := .Players }}
+                <div class="listitem">
+                    <div class="li-main">
+                        <div class="li-title">{{ $name }}</div>
+                        <div class="li-sub">
+                            Wins:
+                            {{ $w := index $.Wins $idx }}
+                            {{ if $w }}{{ $w }}{{ else }}0{{ end }}
+                        </div>
+                    </div>
+                </div>
+            {{ end }}
+        </div>
+    </section>
+{{ end }}
