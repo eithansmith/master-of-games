@@ -23,7 +23,7 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := s.homeTmpl.ExecuteTemplate(w, "home", vm); err != nil {
+	if err := s.r.HTML(w, "home", "home", vm); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -235,7 +235,7 @@ func (s *Server) renderWeek(w http.ResponseWriter, year, week int, formErr strin
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := s.weekTmpl.ExecuteTemplate(w, "week", vm); err != nil {
+	if err := s.r.HTML(w, "week", "week", vm); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -342,7 +342,7 @@ func (s *Server) renderYear(w http.ResponseWriter, year int, formErr string) {
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := s.yearTmpl.ExecuteTemplate(w, "year", vm); err != nil {
+	if err := s.r.HTML(w, "year", "year", vm); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -360,5 +360,5 @@ func (s *Server) renderHomeWithError(w http.ResponseWriter, msg string) {
 		FormError: msg,
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_ = s.homeTmpl.ExecuteTemplate(w, "home", vm)
+	_ = s.r.HTML(w, "home", "home", vm)
 }

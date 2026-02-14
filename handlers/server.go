@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"html/template"
 	"net/http"
 )
 
@@ -14,21 +13,24 @@ type Meta struct {
 
 // Server owns HTTP handlers + template rendering for the app.
 type Server struct {
-	homeTmpl *template.Template
-	weekTmpl *template.Template
-	yearTmpl *template.Template
-	store    Store
-	meta     Meta
+	r     *Renderer
+	store Store
+	meta  Meta
 }
 
 // New constructs a Server with default template paths.
 func New(store Store, meta Meta) *Server {
+	r := NewRenderer(RendererConfig{
+		Base: "web/templates/base.go.html",
+		Home: "web/templates/home.go.html",
+		Week: "web/templates/week.go.html",
+		Year: "web/templates/year.go.html",
+	})
+
 	return &Server{
-		homeTmpl: mustParse("web/templates/base.go.html", "web/templates/home.go.html"),
-		weekTmpl: mustParse("web/templates/base.go.html", "web/templates/week.go.html"),
-		yearTmpl: mustParse("web/templates/base.go.html", "web/templates/year.go.html"),
-		store:    store,
-		meta:     meta,
+		r:     r,
+		store: store,
+		meta:  meta,
 	}
 }
 
