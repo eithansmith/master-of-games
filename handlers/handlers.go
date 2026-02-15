@@ -10,6 +10,29 @@ import (
 	"github.com/eithansmith/master-of-games/game"
 )
 
+func (s *Server) newHomeVM() HomeVM {
+	vm := HomeVM{
+		Title:     "Master of Games",
+		Version:   s.meta.Version,
+		BuildTime: s.meta.BuildTime,
+		StartTime: s.meta.StartTime,
+		YearNow:   time.Now().Year(),
+		Players:   game.Players,
+		Titles:    game.Titles,
+		Games:     s.store.RecentGames(25),
+		Form:      s.defaultHomeForm(),
+	}
+	return vm
+}
+
+func (s *Server) defaultHomeForm() HomeForm {
+	return HomeForm{
+		PlayedAt:     time.Now().Format("2006-01-02T15:04"),
+		Participants: map[int]bool{},
+		Winners:      map[int]bool{},
+	}
+}
+
 func (s *Server) handleHome(w http.ResponseWriter, _ *http.Request) {
 	vm := s.newHomeVM()
 	if err := s.r.HTML(w, "home", "home", vm); err != nil {
@@ -108,6 +131,13 @@ func (s *Server) handleDeleteGame(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
+func (s *Server) renderHomeWithError(w http.ResponseWriter, msg string, form HomeForm) {
+	vm := s.newHomeVM()
+	vm.FormError = msg
+	vm.Form = form
+	_ = s.r.HTML(w, "home", "home", vm)
+}
+
 func (s *Server) handleWeekCurrent(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
 	year, week := now.ISOWeek()
@@ -196,20 +226,35 @@ func (s *Server) handleWeekTiebreakPost(w http.ResponseWriter, r *http.Request, 
 	s.renderWeek(w, year, week, "")
 }
 
-func healthz(w http.ResponseWriter, _ *http.Request) {
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte("ok"))
-}
-
 func (s *Server) renderWeek(w http.ResponseWriter, year, week int, formErr string) {
+	all := s.store.RecentGames(0)
+
 	ws := game.ComputeWeekStandings(
-		s.store.RecentGames(0),
+		all,
 		year,
 		week,
 		len(game.Players),
 		s.store.GetTiebreaker,
 	)
+
+	// Build year list from games (fallback to the current year if empty)
+	fallbackYear := time.Now().Year()
+	minY, maxY := yearsFromGames(all, fallbackYear)
+
+	years := make([]int, 0, maxY-minY+1)
+	for y := minY; y <= maxY; y++ {
+		years = append(years, y)
+	}
+
+	// Weeks list depends on the selected year (ISO year can have 52 or 53)
+	last := isoWeeksInYear(year)
+	weeks := make([]int, 0, last)
+	for wk := 1; wk <= last; wk++ {
+		weeks = append(weeks, wk)
+	}
+
+	py, pw := prevISOWeek(year, week)
+	ny, nw := nextISOWeek(year, week)
 
 	vm := WeekVM{
 		Title:     "Master of Games",
@@ -231,6 +276,17 @@ func (s *Server) renderWeek(w http.ResponseWriter, year, week int, formErr strin
 		TieUnresolved: ws.TotalGames > 0 && len(ws.TopIDs) > 1 && ws.WinnerID == nil,
 
 		FormError: formErr,
+
+		Years: years,
+		Weeks: weeks,
+
+		PrevYear: py,
+		PrevWeek: pw,
+		HasPrev:  true,
+
+		NextYear: ny,
+		NextWeek: nw,
+		HasNext:  true,
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -346,32 +402,8 @@ func (s *Server) renderYear(w http.ResponseWriter, year int, formErr string) {
 	}
 }
 
-func (s *Server) defaultHomeForm() HomeForm {
-	return HomeForm{
-		PlayedAt:     time.Now().Format("2006-01-02T15:04"),
-		Participants: map[int]bool{},
-		Winners:      map[int]bool{},
-	}
-}
-
-func (s *Server) newHomeVM() HomeVM {
-	vm := HomeVM{
-		Title:     "Master of Games",
-		Version:   s.meta.Version,
-		BuildTime: s.meta.BuildTime,
-		StartTime: s.meta.StartTime,
-		YearNow:   time.Now().Year(),
-		Players:   game.Players,
-		Titles:    game.Titles,
-		Games:     s.store.RecentGames(25),
-		Form:      s.defaultHomeForm(),
-	}
-	return vm
-}
-
-func (s *Server) renderHomeWithError(w http.ResponseWriter, msg string, form HomeForm) {
-	vm := s.newHomeVM()
-	vm.FormError = msg
-	vm.Form = form
-	_ = s.r.HTML(w, "home", "home", vm)
+func healthz(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte("ok"))
 }

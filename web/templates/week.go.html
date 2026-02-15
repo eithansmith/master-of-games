@@ -4,9 +4,71 @@
 
 {{ define "main" }}
     <section class="card">
-        <div class="row" style="justify-content: space-between; align-items: baseline;">
-            <h1 style="margin:0;">Week {{ .Year }}-W{{ printf "%02d" .Week }}</h1>
+        <!--suppress UnnecessaryLabelJS -->
+        <div class="row"
+             style="gap: 8px; align-items: center;"
+             x-data="{
+                year: parseInt('{{ .Year }}'),
+                week: parseInt('{{ .Week }}'),
+            }"
+        >
+
             <a class="btn secondary" href="/weeks/current">Current</a>
+
+            <!--suppress BadExpressionStatementJS, JSUndeclaredVariable, JSUnresolvedReference -->
+            <button class="btn secondary"
+                    @click="() => {
+                        week = week - 1;
+                        if (week < 1) {
+                            week = 52;
+                            year = year - 1;
+                        }
+                        window.location = `/weeks/${year}/${week}`
+                    }"
+                    title="Previous week">
+                ←
+            </button>
+
+            <div style="display:flex; gap:8px; align-items:center;">
+
+                <label style="display:flex; gap:6px; align-items:center;">
+                    <span class="hint">Year</span>
+                    <select x-model="year"
+                            @change="window.location = `/weeks/${year}/${week}`">
+                        {{ range .Years }}
+                            <option value="{{ . }}">{{ . }}</option>
+                        {{ end }}
+                    </select>
+                </label>
+
+                <label style="display:flex; gap:6px; align-items:center;">
+                    <span class="hint">Week</span>
+                    <select x-model="week"
+                            @change="window.location = `/weeks/${year}/${week}`">
+                        {{ range .Weeks }}
+                            <option value="{{ . }}">
+                                {{ printf "%02d" . }}
+                            </option>
+                        {{ end }}
+                    </select>
+                </label>
+
+            </div>
+
+            <!--suppress BadExpressionStatementJS -->
+            <button
+                    class="btn secondary"
+                    @click="() => {
+                        week = week + 1;
+                        if (week > 52) {
+                            week = 1;
+                            year = year + 1;
+                        }
+                        window.location = `/weeks/${year}/${week}`
+                    }"
+                    title="Next week">
+                →
+            </button>
         </div>
 
         {{ if .FormError }}
@@ -14,7 +76,7 @@
         {{ end }}
 
         {{ if eq .TotalGames 0 }}
-            <p style="margin-top: 10px;">No Trophy Awarded — no games played (Mon–Fri).</p>
+            <p style="margin-top: 10px;">No Trophy Awarded — no games played (Mon – Fri).</p>
         {{ else }}
             <div style="margin-top: 10px;">
                 <div class="label">This week’s trophy</div>
@@ -57,7 +119,7 @@
                     </form>
                 {{ end }}
 
-                <p class="hint">Total games (Mon–Fri): <strong>{{ .TotalGames }}</strong></p>
+                <p class="hint">Total games (Mon – Fri): <strong>{{ .TotalGames }}</strong></p>
             </div>
         {{ end }}
     </section>

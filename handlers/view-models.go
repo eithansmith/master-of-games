@@ -34,6 +34,17 @@ type WeekVM struct {
 	Year int
 	Week int
 
+	Years []int
+	Weeks []int
+
+	PrevYear int
+	PrevWeek int
+	HasPrev  bool
+
+	NextYear int
+	NextWeek int
+	HasNext  bool
+
 	Players []string
 
 	TotalGames int
