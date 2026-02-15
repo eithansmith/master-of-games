@@ -3,15 +3,13 @@ package handlers
 import (
 	"strconv"
 	"time"
-
-	"github.com/eithansmith/master-of-games/game"
 )
 
-// parseIntSlice converts string values (typically checkbox indices) into an int slice.
-func parseIntSlice(vals []string) []int {
-	out := make([]int, 0, len(vals))
+// parseInt64Slice converts string values (typically checkbox IDs) into an int64 slice.
+func parseInt64Slice(vals []string) []int64 {
+	out := make([]int64, 0, len(vals))
 	for _, v := range vals {
-		i, err := strconv.Atoi(v)
+		i, err := strconv.ParseInt(v, 10, 64)
 		if err == nil {
 			out = append(out, i)
 		}
@@ -19,11 +17,11 @@ func parseIntSlice(vals []string) []int {
 	return out
 }
 
-// parseIntMap converts string values (typically checkbox indices) into a lookup map.
-func parseIntMap(vals []string) map[int]bool {
-	m := make(map[int]bool, len(vals))
+// parseInt64Map converts string values (typically checkbox IDs) into a lookup map.
+func parseInt64Map(vals []string) map[int64]bool {
+	m := make(map[int64]bool, len(vals))
 	for _, v := range vals {
-		i, err := strconv.Atoi(v)
+		i, err := strconv.ParseInt(v, 10, 64)
 		if err == nil {
 			m[i] = true
 		}
@@ -32,8 +30,8 @@ func parseIntMap(vals []string) map[int]bool {
 }
 
 // isSubset returns true iff sub is a subset of set.
-func isSubset(sub, set []int) bool {
-	m := map[int]bool{}
+func isSubset(sub, set []int64) bool {
+	m := map[int64]bool{}
 	for _, v := range set {
 		m[v] = true
 	}
@@ -45,8 +43,8 @@ func isSubset(sub, set []int) bool {
 	return true
 }
 
-// containsInt returns true iff v is in xs.
-func containsInt(xs []int, v int) bool {
+// containsInt64 returns true iff v is in xs.
+func containsInt64(xs []int64, v int64) bool {
 	for _, x := range xs {
 		if x == v {
 			return true
@@ -73,29 +71,9 @@ func prevISOWeek(year, week int) (int, int) {
 
 // nextISOWeek returns the next ISO week of the given year and week number.
 func nextISOWeek(year, week int) (int, int) {
-	last := isoWeeksInYear(year)
-	if week < last {
+	weeksInYear := isoWeeksInYear(year)
+	if week < weeksInYear {
 		return year, week + 1
 	}
-	ny := year + 1
-	return ny, 1
-}
-
-// yearsFromGames returns the min and max years covered by the given games.
-func yearsFromGames(games []game.Game, fallbackYear int) (minY, maxY int) {
-	minY, maxY = fallbackYear, fallbackYear
-	if len(games) == 0 {
-		return
-	}
-	minY, maxY = games[0].PlayedAt.Year(), games[0].PlayedAt.Year()
-	for _, g := range games {
-		y := g.PlayedAt.Year()
-		if y < minY {
-			minY = y
-		}
-		if y > maxY {
-			maxY = y
-		}
-	}
-	return
+	return year + 1, 1
 }

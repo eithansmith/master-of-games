@@ -83,7 +83,7 @@
 
                 {{ if .WinnerID }}
                     <div class="trophy">
-                        🏆 {{ index .Players (derefInt .WinnerID) }}
+                        🏆 {{ index .PlayerNames (derefInt64 .WinnerID) }}
                     </div>
                 {{ else }}
                     <div class="trophy">
@@ -129,7 +129,7 @@
 
         <div class="list">
             {{ range $idx, $name := .Players }}
-                <div class="listitem">
+                <div class="list-item">
                     <div class="li-main">
                         <div class="li-title">{{ $name }}</div>
                         <div class="li-sub">

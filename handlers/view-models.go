@@ -3,10 +3,11 @@ package handlers
 import "github.com/eithansmith/master-of-games/game"
 
 type HomeForm struct {
-	Title        string
+	TitleID      int64
 	PlayedAt     string
-	Participants map[int]bool
-	Winners      map[int]bool
+	Participants map[int64]bool
+	Winners      map[int64]bool
+	Notes        string
 }
 
 type HomeVM struct {
@@ -16,9 +17,10 @@ type HomeVM struct {
 	StartTime string
 	YearNow   int
 
-	Players []string
-	Titles  []string
-	Games   []game.Game
+	Players     []game.Player
+	PlayerNames map[int64]string
+	Titles      []game.Title
+	Games       []game.Game
 
 	FormError string
 	Form      HomeForm
@@ -45,13 +47,14 @@ type WeekVM struct {
 	NextWeek int
 	HasNext  bool
 
-	Players []string
+	Players     []game.Player
+	PlayerNames map[int64]string
 
 	TotalGames int
-	Wins       map[int]int
+	Wins       map[int64]int
 
-	TopIDs        []int
-	WinnerID      *int
+	TopIDs        []int64
+	WinnerID      *int64
 	TieUnresolved bool
 
 	FormError string
@@ -64,15 +67,39 @@ type YearVM struct {
 	StartTime string
 	YearNow   int
 
-	Year    int
-	Players []string
+	Year int
+
+	Players     []game.Player
+	PlayerNames map[int64]string
 
 	Stats []game.PlayerYearStats
 
-	Qualifiers    []int
-	TopIDs        []int
-	WinnerID      *int
+	Qualifiers    []int64
+	TopIDs        []int64
+	WinnerID      *int64
 	TieUnresolved bool
 
+	FormError string
+}
+
+type PlayersVM struct {
+	Title     string
+	Version   string
+	BuildTime string
+	StartTime string
+	YearNow   int
+
+	Players   []game.Player
+	FormError string
+}
+
+type TitlesVM struct {
+	Title     string
+	Version   string
+	BuildTime string
+	StartTime string
+	YearNow   int
+
+	Titles    []game.Title
 	FormError string
 }

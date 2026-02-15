@@ -18,7 +18,7 @@
 
             {{ if .WinnerID }}
                 <div class="trophy">
-                    🏆 {{ index .Players (derefInt .WinnerID) }}
+                    🏆 {{ index .PlayerNames (derefInt64 .WinnerID) }}
                 </div>
             {{ else if gt (len .TopIDs) 1 }}
                 <div class="trophy">🤝 Tie (unresolved)</div>
@@ -60,12 +60,12 @@
     <section class="card" style="margin-top: 12px;">
         <h1>Attendance + Win Rate</h1>
         <p class="hint">
-            Rule: qualify by attendance (top half), then winner is highest win rate (wins / games played).
+            Rule: qualify by attendance (top half), then winner is the highest win rate (wins / games played).
         </p>
 
         <div class="list">
             {{ range .Stats }}
-                <div class="listitem">
+                <div class="list-item">
                     <div class="li-main">
                         <div class="li-title">
                             {{ index $.Players .PlayerID }}

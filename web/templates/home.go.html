@@ -10,13 +10,13 @@
             <div class="alert">{{ .FormError }}</div>
         {{ end }}
 
-        <form hx-post="/games" hx-target="#main" hx-select="#main" hx-swap="outerHTML" method="post" class="form">
+        <form hx-post="/games" hx-target="#main" hx-swap="innerHTML" method="post" class="form">
             <label>
                 Game title
-                <select name="title" required>
+                <select name="title_id" required>
                     <option value="">Select a game...</option>
                     {{ range .Titles }}
-                        <option value="{{ . }}" {{ if eq $.Form.Title . }}selected{{ end }}>{{ . }}</option>
+                        <option value="{{ .ID }}" {{ if eq $.Form.TitleID .ID }}selected{{ end }}>{{ .Name }}</option>
                     {{ end }}
                 </select>
             </label>
@@ -24,22 +24,22 @@
             <label>
                 Played at
                 <input type="datetime-local" name="played_at" required value="{{ .Form.PlayedAt }}">
-                <small class="hint">Weekdays only (Mon–Fri)</small>
+                <small class="hint">Weekdays only (Mon – Fri)</small>
             </label>
 
             <div class="grid2">
                 <div>
                     <div class="label">Participants</div>
                     <div class="chips">
-                        {{ range $idx, $name := .Players }}
+                        {{ range .Players }}
                             <label class="chip">
                                 <input
                                         type="checkbox"
                                         name="participants"
-                                        value="{{ $idx }}"
-                                        {{ if index $.Form.Participants $idx }}checked{{ end }}
+                                        value="{{ .ID }}"
+                                        {{ if index $.Form.Participants .ID }}checked{{ end }}
                                 >
-                                <span>{{ $name }}</span>
+                                <span>{{ .Name }}</span>
                             </label>
                         {{ end }}
                     </div>
@@ -48,21 +48,26 @@
                 <div>
                     <div class="label">Winners (can be multiple)</div>
                     <div class="chips">
-                        {{ range $idx, $name := .Players }}
+                        {{ range .Players }}
                             <label class="chip">
                                 <input
                                         type="checkbox"
                                         name="winners"
-                                        value="{{ $idx }}"
-                                        {{ if index $.Form.Winners $idx }}checked{{ end }}
+                                        value="{{ .ID }}"
+                                        {{ if index $.Form.Winners .ID }}checked{{ end }}
                                 >
-                                <span>{{ $name }}</span>
+                                <span>{{ .Name }}</span>
                             </label>
                         {{ end }}
                     </div>
                     <small class="hint">Winners must also be selected as participants.</small>
                 </div>
             </div>
+
+            <label>
+                Notes (optional)
+                <textarea name="notes" rows="3" placeholder="Anything noteworthy?">{{ .Form.Notes }}</textarea>
+            </label>
 
             <div class="row">
                 <button class="btn" type="submit">Add game</button>
@@ -78,7 +83,7 @@
         {{ else }}
             <div class="list">
                 {{ range .Games }}
-                    <div class="listitem">
+                    <div class="list-item">
                         <div class="li-main">
                             <div class="li-title">{{ .Title }}</div>
                             <div class="li-sub">{{ .PlayedAt.Format "2006-01-02 15:04" }}</div>
@@ -86,15 +91,17 @@
                                 Winners:
                                 {{ range $i, $wid := .WinnerIDs }}
                                     {{ if $i }}, {{ end }}
-                                    {{ index $.Players $wid }}
+                                    {{ index $.PlayerNames $wid }}
                                 {{ end }}
                             </div>
+                            {{ if .Notes }}
+                                <div class="li-sub">Notes: {{ .Notes }}</div>
+                            {{ end }}
                         </div>
-
                         <form hx-post="/games/delete" hx-target="#main" hx-select="#main" hx-swap="outerHTML"
-                              method="post" hx-confirm="Are you sure you wish to delete this game?">
+                              method="post">
                             <input type="hidden" name="id" value="{{ .ID }}">
-                            <button class="btn secondary" type="submit">Delete</button>
+                            <button class="btn danger" type="submit" title="Delete">Delete</button>
                         </form>
                     </div>
                 {{ end }}

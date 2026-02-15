@@ -1,0 +1,49 @@
+{{ define "titles" }}
+    {{ template "base" . }}
+{{ end }}
+
+{{ define "main" }}
+    <section class="card">
+        <h1>Titles</h1>
+
+        {{ if .FormError }}
+            <div class="alert">{{ .FormError }}</div>
+        {{ end }}
+
+        <form method="post" action="/titles" class="row" style="gap: 10px; align-items: end; margin-bottom: 14px;">
+            <label style="flex:1;">
+                Add title
+                <input type="text" name="name" placeholder="Game title" required>
+            </label>
+            <button class="btn" type="submit">Add</button>
+        </form>
+
+        {{ if not .Titles }}
+            <p>No titles yet.</p>
+        {{ else }}
+            <div class="list">
+                {{ range .Titles }}
+                    <div class="list-item">
+                        <div class="li-main">
+                            <form method="post" action="/titles/update" class="row"
+                                  style="gap:10px; align-items:end; margin:0;">
+                                <input type="hidden" name="id" value="{{ .ID }}">
+                                <label style="flex:1; margin:0;">
+                                    Name
+                                    <input type="text" name="name" value="{{ .Name }}" required>
+                                </label>
+                                <button class="btn secondary" type="submit">Save</button>
+                            </form>
+                        </div>
+
+                        <form method="post" action="/titles/delete" style="margin:0;">
+                            <input type="hidden" name="id" value="{{ .ID }}">
+                            <button class="btn danger" type="submit" title="Delete">Delete</button>
+                        </form>
+                    </div>
+                {{ end }}
+            </div>
+            <small class="hint">If a title is referenced by an existing game, deletion may be blocked.</small>
+        {{ end }}
+    </section>
+{{ end }}

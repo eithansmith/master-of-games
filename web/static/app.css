@@ -28,7 +28,7 @@ body {
 
 .brand {
     font-weight: 700;
-    letter-spacing: 0.2px;
+    letter-spacing: 0.0125rem;
 }
 
 .card {
@@ -146,7 +146,7 @@ select, input[type="datetime-local"] {
     margin-top: 10px;
 }
 
-.listitem {
+.list-item {
     display:flex;
     justify-content:space-between;
     align-items:flex-start;
@@ -174,13 +174,13 @@ select, input[type="datetime-local"] {
     flex-wrap: wrap;
 }
 
-.navlink {
+.nav-link {
     color:#e8eef6;
     text-decoration:none;
     opacity:0.85;
 }
 
-.navlink:hover {
+.nav-link:hover {
     opacity:1;
     text-decoration:underline;
 }

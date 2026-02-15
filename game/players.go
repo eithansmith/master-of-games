@@ -1,19 +1,22 @@
 package game
 
-var Players = []string{
-	"Autumn",
-	"Andy",
-	"Christi",
-	"Dan",
-	"Eithan",
-	"Enza",
-	"Jeff",
-	"Larry",
-	"Lisa",
-	"Randall",
-	"Rich",
-	"Shontae",
-	"Thomas",
-	"Tim",
-	"Tom",
+//goland:noinspection SpellCheckingInspection
+var SeedPlayers = []string{
+	"AFAILLA",
+	"AMAAG",
+	"BAIRD",
+	"CNEUTZLING",
+	"DSCHMITT",
+	"ESMITH",
+	"EZAMORA",
+	"JWHITTEMORE",
+	"LCOOK",
+	"LGRAVOT",
+	"LWOOTTEN",
+	"RSTEUER",
+	"RWALL",
+	"SBLUE",
+	"TRIEDER",
+	"TSUMPTER",
+	"TCOX",
 }

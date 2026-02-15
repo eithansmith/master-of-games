@@ -1,6 +1,7 @@
 package game
 
-var Titles = []string{
+//goland:noinspection SpellCheckingInspection
+var SeedTitles = []string{
 	"Bang",
 	"Camel Up",
 	"Cockroach Poker",

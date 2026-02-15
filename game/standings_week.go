@@ -1,7 +1,9 @@
 package game
 
 import (
+	"fmt"
 	"sort"
+	"time"
 )
 
 type WeekStandings struct {
@@ -10,102 +12,82 @@ type WeekStandings struct {
 	ScopeKey string // "2026-W07"
 
 	TotalGames int
-	Wins       map[int]int // playerID -> wins
+	Wins       map[int64]int // playerID -> wins
 
-	TopIDs   []int // tied leaders by wins (could be 1)
-	WinnerID *int  // set when decided (single leader OR tiebreaker winner)
+	TopIDs        []int64 // tied leaders by wins (could be 1)
+	WinnerID      *int64
+	TieUnresolved bool
 }
 
+func WeekScopeKey(year, week int) string {
+	return fmt.Sprintf("%04d-W%02d", year, week)
+}
+
+// ComputeWeekStandings filters games to the requested ISO year+week, counts wins, and applies any stored tiebreaker.
 func ComputeWeekStandings(
 	games []Game,
-	year int,
-	week int,
-	playersCount int,
-	lookupTiebreaker func(scope, scopeKey string) (Tiebreaker, bool),
+	year, week int,
+	getTB func(scope, scopeKey string) (Tiebreaker, bool),
 ) WeekStandings {
-	scopeKey := isoWeekKey(year, week)
-
-	wins := make(map[int]int, playersCount)
-	total := 0
+	ws := WeekStandings{
+		Year:     year,
+		Week:     week,
+		ScopeKey: WeekScopeKey(year, week),
+		Wins:     map[int64]int{},
+	}
 
 	for _, g := range games {
-		gy, gw := g.PlayedAt.ISOWeek()
-		if gy != year || gw != week {
+		y, w := g.PlayedAt.In(time.Local).ISOWeek()
+		if y != year || w != week {
 			continue
 		}
-		if !IsWeekdayLocal(g.PlayedAt) {
-			continue
-		}
-		total++
-
-		// Option A: each winner gets +1 win.
+		ws.TotalGames++
 		for _, wid := range g.WinnerIDs {
-			wins[wid]++
+			ws.Wins[wid]++
 		}
 	}
 
-	ws := WeekStandings{
-		Year:       year,
-		Week:       week,
-		ScopeKey:   scopeKey,
-		TotalGames: total,
-		Wins:       wins,
+	// Determine leaders
+	maxWins := 0
+	for _, w := range ws.Wins {
+		if w > maxWins {
+			maxWins = w
+		}
 	}
+	for pid, w := range ws.Wins {
+		if w == maxWins && maxWins > 0 {
+			ws.TopIDs = append(ws.TopIDs, pid)
+		}
+	}
+	sort.Slice(ws.TopIDs, func(i, j int) bool { return ws.TopIDs[i] < ws.TopIDs[j] })
 
-	if total == 0 {
-		// No trophy awarded.
+	if len(ws.TopIDs) == 1 {
+		ws.WinnerID = &ws.TopIDs[0]
 		return ws
 	}
 
-	// Find max wins
-	maxWins := -1
-	for pid := 0; pid < playersCount; pid++ {
-		if wins[pid] > maxWins {
-			maxWins = wins[pid]
+	if len(ws.TopIDs) > 1 {
+		// If we have a stored tiebreaker, apply it.
+		if getTB != nil {
+			if tb, ok := getTB("weekly", ws.ScopeKey); ok {
+				if containsID(ws.TopIDs, tb.WinnerID) {
+					wid := tb.WinnerID
+					ws.WinnerID = &wid
+					return ws
+				}
+			}
 		}
+		ws.TieUnresolved = true
 	}
 
-	// Collect all tied leaders
-	var top []int
-	for pid := 0; pid < playersCount; pid++ {
-		if wins[pid] == maxWins {
-			top = append(top, pid)
-		}
-	}
-	ws.TopIDs = top
-
-	// If exactly 1 leader, winner is decided automatically
-	if len(top) == 1 {
-		ws.WinnerID = &top[0]
-		return ws
-	}
-
-	// Otherwise, check if a tiebreaker exists for this week
-	if tb, ok := lookupTiebreaker("weekly", scopeKey); ok {
-		// (Optional safety) ensure tb.WinnerID is in tb.TiedPlayerIDs
-		ws.WinnerID = &tb.WinnerID
-	}
-
-	// Sort TopIDs for stable display
-	sort.Ints(ws.TopIDs)
 	return ws
 }
 
-func isoWeekKey(year, week int) string {
-	// "2026-W07"
-	return fmtWeekKey(year, week)
-}
-
-func fmtWeekKey(year, week int) string {
-	// no fmt import in snippet; if you prefer:
-	// return fmt.Sprintf("%04d-W%02d", year, week)
-	return weekKey(year, week)
-}
-
-// keep this helper small to avoid lots of imports; implement in your preferred file
-func weekKey(year, week int) string {
-	// naive formatting:
-	s := ""
-	// (just use fmt.Sprintf in your actual code)
-	return s
+func containsID(xs []int64, v int64) bool {
+	for _, x := range xs {
+		if x == v {
+			return true
+		}
+	}
+	return false
 }

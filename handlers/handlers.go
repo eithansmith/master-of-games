@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -12,25 +11,41 @@ import (
 )
 
 func (s *Server) newHomeVM() HomeVM {
+	players := s.store.ListPlayers()
+	titles := s.store.ListTitles()
+	pMap := make(map[int64]string, len(players))
+	for _, p := range players {
+		pMap[p.ID] = p.Name
+	}
+
 	vm := HomeVM{
-		Title:     "Master of Games",
-		Version:   s.meta.Version,
-		BuildTime: s.meta.BuildTime,
-		StartTime: s.meta.StartTime,
-		YearNow:   time.Now().Year(),
-		Players:   game.Players,
-		Titles:    game.Titles,
-		Games:     s.store.RecentGames(25),
-		Form:      s.defaultHomeForm(),
+		Title:       "Master of Games",
+		Version:     s.meta.Version,
+		BuildTime:   s.meta.BuildTime,
+		StartTime:   s.meta.StartTime,
+		YearNow:     time.Now().Year(),
+		Players:     players,
+		PlayerNames: pMap,
+		Titles:      titles,
+		Games:       s.store.RecentGames(25),
+		Form:        s.defaultHomeForm(players, titles),
 	}
 	return vm
 }
 
-func (s *Server) defaultHomeForm() HomeForm {
+func (s *Server) defaultHomeForm(_ []game.Player, titles []game.Title) HomeForm {
+	// Default title: first title alphabetically (ListTitles already returns ordered in both stores)
+	var titleID int64
+	if len(titles) > 0 {
+		titleID = titles[0].ID
+	}
+
 	return HomeForm{
+		TitleID:      titleID,
 		PlayedAt:     time.Now().Format("2006-01-02T15:04"),
-		Participants: map[int]bool{},
-		Winners:      map[int]bool{},
+		Participants: map[int64]bool{},
+		Winners:      map[int64]bool{},
+		Notes:        "",
 	}
 }
 
@@ -47,25 +62,44 @@ func (s *Server) handleAddGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	players := s.store.ListPlayers()
+	titles := s.store.ListTitles()
+
 	if err := r.ParseForm(); err != nil {
-		s.renderHomeWithError(w, "Invalid form submission.", s.defaultHomeForm())
+		s.renderHomeWithError(w, "Invalid form submission.", s.defaultHomeForm(players, titles))
 		return
 	}
 
-	title := strings.TrimSpace(r.FormValue("title"))
+	titleIDStr := strings.TrimSpace(r.FormValue("title_id"))
 	playedAtStr := strings.TrimSpace(r.FormValue("played_at"))
+	notes := strings.TrimSpace(r.FormValue("notes"))
+
 	if playedAtStr == "" {
 		playedAtStr = time.Now().Format("2006-01-02T15:04")
 	}
 
-	participantIDs := parseIntSlice(r.Form["participants"])
-	winnerIDs := parseIntSlice(r.Form["winners"])
+	titleID, err := strconv.ParseInt(titleIDStr, 10, 64)
+	if err != nil || titleID <= 0 {
+		form := HomeForm{
+			TitleID:      0,
+			PlayedAt:     playedAtStr,
+			Participants: parseInt64Map(r.Form["participants"]),
+			Winners:      parseInt64Map(r.Form["winners"]),
+			Notes:        notes,
+		}
+		s.renderHomeWithError(w, "Please select a valid game title.", form)
+		return
+	}
+
+	participantIDs := parseInt64Slice(r.Form["participants"])
+	winnerIDs := parseInt64Slice(r.Form["winners"])
 
 	form := HomeForm{
-		Title:        title,
+		TitleID:      titleID,
 		PlayedAt:     playedAtStr,
-		Participants: parseIntMap(r.Form["participants"]),
-		Winners:      parseIntMap(r.Form["winners"]),
+		Participants: parseInt64Map(r.Form["participants"]),
+		Winners:      parseInt64Map(r.Form["winners"]),
+		Notes:        notes,
 	}
 
 	playedAt, err := time.Parse("2006-01-02T15:04", playedAtStr)
@@ -74,42 +108,42 @@ func (s *Server) handleAddGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validation
-	if title == "" {
-		s.renderHomeWithError(w, "Please choose a game title.", form)
-		return
-	}
-	if len(participantIDs) < 2 {
-		s.renderHomeWithError(w, "Please select at least 2 participants.", form)
-		return
-	}
-	if len(winnerIDs) < 1 {
-		s.renderHomeWithError(w, "Please select at least 1 winner.", form)
-		return
-	}
 	if !game.IsWeekdayLocal(playedAt) {
-		s.renderHomeWithError(w, "Games can only be logged Monday–Friday.", form)
-		return
-	}
-	if !isSubset(winnerIDs, participantIDs) {
-		s.renderHomeWithError(w, "Winners must be a subset of participants.", form)
+		s.renderHomeWithError(w, "Only weekday games are allowed (Mon–Fri).", form)
 		return
 	}
 
-	s.store.AddGame(game.Game{
+	if len(participantIDs) == 0 {
+		s.renderHomeWithError(w, "Please select at least one participant.", form)
+		return
+	}
+
+	if len(winnerIDs) == 0 {
+		s.renderHomeWithError(w, "Please select at least one winner.", form)
+		return
+	}
+
+	if !isSubset(winnerIDs, participantIDs) {
+		s.renderHomeWithError(w, "Winners must also be selected as participants.", form)
+		return
+	}
+
+	g := game.Game{
+		TitleID:        titleID,
 		PlayedAt:       playedAt,
-		Title:          title,
 		ParticipantIDs: participantIDs,
 		WinnerIDs:      winnerIDs,
-	})
-
-	// HTMX-friendly: if HTMX request, return the updated main content.
-	if r.Header.Get("HX-Request") == "true" {
-		s.handleHome(w, r)
-		return
+		Notes:          notes,
 	}
 
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	s.store.AddGame(g)
+
+	// HTMX will swap #main, but a redirect works fine too.
+	vm := s.newHomeVM()
+	vm.Form = s.defaultHomeForm(vm.Players, vm.Titles)
+	if err := s.r.HTML(w, "main", "home", vm); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func (s *Server) handleDeleteGame(w http.ResponseWriter, r *http.Request) {
@@ -117,67 +151,100 @@ func (s *Server) handleDeleteGame(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
-	if err := r.ParseForm(); err != nil {
-		s.renderHomeWithError(w, "Invalid form submission.", s.defaultHomeForm())
-		return
-	}
 
 	id, _ := strconv.ParseInt(r.FormValue("id"), 10, 64)
-	s.store.DeleteGame(id)
-
-	if r.Header.Get("HX-Request") == "true" {
-		s.handleHome(w, r)
-		return
+	if id > 0 {
+		s.store.DeleteGame(id)
 	}
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+
+	vm := s.newHomeVM()
+	if err := s.r.HTML(w, "main", "home", vm); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
-func (s *Server) renderHomeWithError(w http.ResponseWriter, msg string, form HomeForm) {
-	vm := s.newHomeVM()
-	vm.FormError = msg
-	vm.Form = form
-	_ = s.r.HTML(w, "home", "home", vm)
-}
+// ============================
+// Week / Year pages
+// ============================
 
 func (s *Server) handleWeekCurrent(w http.ResponseWriter, r *http.Request) {
-	now := time.Now()
-	year, week := now.ISOWeek()
-	http.Redirect(w, r, "/weeks/"+strconv.Itoa(year)+"/"+strconv.Itoa(week), http.StatusSeeOther)
+	year, week := time.Now().ISOWeek()
+	http.Redirect(w, r, fmt.Sprintf("/weeks/%d/%d", year, week), http.StatusSeeOther)
 }
 
 func (s *Server) handleWeek(w http.ResponseWriter, r *http.Request) {
-	// GET  /weeks/{year}/{week}
-	// POST /weeks/{year}/{week}/tiebreak
-	path := strings.TrimPrefix(r.URL.Path, "/weeks/")
-	parts := strings.Split(strings.Trim(path, "/"), "/")
-
-	if len(parts) < 2 {
+	// /weeks/{year}/{week}
+	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+	if len(parts) != 3 {
 		http.NotFound(w, r)
 		return
 	}
-
-	year, err1 := strconv.Atoi(parts[0])
-	week, err2 := strconv.Atoi(parts[1])
+	year, err1 := strconv.Atoi(parts[1])
+	week, err2 := strconv.Atoi(parts[2])
 	if err1 != nil || err2 != nil || week < 1 || week > 53 {
 		http.NotFound(w, r)
 		return
 	}
 
-	if len(parts) == 3 && parts[2] == "tiebreak" {
-		if r.Method != http.MethodPost {
-			http.NotFound(w, r)
-			return
-		}
+	if r.Method == http.MethodPost {
 		s.handleWeekTiebreakPost(w, r, year, week)
 		return
 	}
+	s.renderWeek(w, year, week, "")
+}
 
-	if r.Method != http.MethodGet {
-		http.NotFound(w, r)
-		return
+func (s *Server) renderWeek(w http.ResponseWriter, year, week int, formErr string) {
+	players := s.store.ListPlayers()
+	pMap := make(map[int64]string, len(players))
+	for _, p := range players {
+		pMap[p.ID] = p.Name
 	}
 
-	s.renderWeek(w, year, week, "")
+	years := make([]int, 0)
+	yNow := time.Now().Year()
+	for y := yNow - 2; y <= yNow+1; y++ {
+		years = append(years, y)
+	}
+
+	weeks := make([]int, 0, isoWeeksInYear(year))
+	for wNum := 1; wNum <= isoWeeksInYear(year); wNum++ {
+		weeks = append(weeks, wNum)
+	}
+
+	py, pw := prevISOWeek(year, week)
+	ny, nw := nextISOWeek(year, week)
+
+	ws := game.ComputeWeekStandings(s.store.RecentGames(0), year, week, s.store.GetTiebreaker)
+
+	vm := WeekVM{
+		Title:         "Week",
+		Version:       s.meta.Version,
+		BuildTime:     s.meta.BuildTime,
+		StartTime:     s.meta.StartTime,
+		YearNow:       yNow,
+		Year:          year,
+		Week:          week,
+		Years:         years,
+		Weeks:         weeks,
+		PrevYear:      py,
+		PrevWeek:      pw,
+		HasPrev:       true,
+		NextYear:      ny,
+		NextWeek:      nw,
+		HasNext:       true,
+		Players:       players,
+		PlayerNames:   pMap,
+		TotalGames:    ws.TotalGames,
+		Wins:          ws.Wins,
+		TopIDs:        ws.TopIDs,
+		WinnerID:      ws.WinnerID,
+		TieUnresolved: ws.TieUnresolved,
+		FormError:     formErr,
+	}
+
+	if err := s.r.HTML(w, "week", "week", vm); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func (s *Server) handleWeekTiebreakPost(w http.ResponseWriter, r *http.Request, year, week int) {
@@ -186,13 +253,7 @@ func (s *Server) handleWeekTiebreakPost(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 
-	ws := game.ComputeWeekStandings(
-		s.store.RecentGames(0),
-		year,
-		week,
-		len(game.Players),
-		s.store.GetTiebreaker,
-	)
+	ws := game.ComputeWeekStandings(s.store.RecentGames(0), year, week, s.store.GetTiebreaker)
 
 	if ws.TotalGames == 0 {
 		s.renderWeek(w, year, week, "No games were played this week—no tiebreaker needed.")
@@ -203,131 +264,74 @@ func (s *Server) handleWeekTiebreakPost(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 
-	winnerID, err := strconv.Atoi(r.FormValue("winner_id"))
-	if err != nil {
-		s.renderWeek(w, year, week, "Please select a winner.")
-		return
-	}
-	if !containsInt(ws.TopIDs, winnerID) {
-		s.renderWeek(w, year, week, "Selected winner is not part of the tied group.")
+	winnerID, err := strconv.ParseInt(r.FormValue("winner_id"), 10, 64)
+	if err != nil || !containsInt64(ws.TopIDs, winnerID) {
+		s.renderWeek(w, year, week, "Please select a valid winner from the tied leaders.")
 		return
 	}
 
-	scopeKey := fmt.Sprintf("%04d-W%02d", year, week)
-
-	s.store.SetTiebreaker(game.Tiebreaker{
+	tb := game.Tiebreaker{
 		Scope:         "weekly",
-		ScopeKey:      scopeKey,
+		ScopeKey:      ws.ScopeKey,
 		TiedPlayerIDs: ws.TopIDs,
 		WinnerID:      winnerID,
 		Method:        "chance",
-		DecidedAt:     time.Now().UTC(),
-	})
-
-	s.renderWeek(w, year, week, "")
-}
-
-func (s *Server) renderWeek(w http.ResponseWriter, year, week int, formErr string) {
-	all := s.store.RecentGames(0)
-
-	ws := game.ComputeWeekStandings(
-		all,
-		year,
-		week,
-		len(game.Players),
-		s.store.GetTiebreaker,
-	)
-
-	// Build year list from games (fallback to the current year if empty)
-	fallbackYear := time.Now().Year()
-	minY, maxY := yearsFromGames(all, fallbackYear)
-
-	years := make([]int, 0, maxY-minY+1)
-	for y := minY; y <= maxY; y++ {
-		years = append(years, y)
+		DecidedAt:     time.Now(),
 	}
+	s.store.SetTiebreaker(tb)
 
-	// Weeks list depends on the selected year (ISO year can have 52 or 53)
-	last := isoWeeksInYear(year)
-	weeks := make([]int, 0, last)
-	for wk := 1; wk <= last; wk++ {
-		weeks = append(weeks, wk)
-	}
-
-	py, pw := prevISOWeek(year, week)
-	ny, nw := nextISOWeek(year, week)
-
-	vm := WeekVM{
-		Title:     "Master of Games",
-		Version:   s.meta.Version,
-		BuildTime: s.meta.BuildTime,
-		StartTime: s.meta.StartTime,
-		YearNow:   time.Now().Year(),
-
-		Year: year,
-		Week: week,
-
-		Players: game.Players,
-
-		TotalGames: ws.TotalGames,
-		Wins:       ws.Wins,
-
-		TopIDs:        ws.TopIDs,
-		WinnerID:      ws.WinnerID,
-		TieUnresolved: ws.TotalGames > 0 && len(ws.TopIDs) > 1 && ws.WinnerID == nil,
-
-		FormError: formErr,
-
-		Years: years,
-		Weeks: weeks,
-
-		PrevYear: py,
-		PrevWeek: pw,
-		HasPrev:  true,
-
-		NextYear: ny,
-		NextWeek: nw,
-		HasNext:  true,
-	}
-
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := s.r.HTML(w, "week", "week", vm); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+	s.renderWeek(w, year, week, "Tiebreaker saved.")
 }
 
 func (s *Server) handleYear(w http.ResponseWriter, r *http.Request) {
-	// GET  /years/{year}
-	// POST /years/{year}/tiebreak
-	path := strings.TrimPrefix(r.URL.Path, "/years/")
-	parts := strings.Split(strings.Trim(path, "/"), "/")
-
-	if len(parts) < 1 || parts[0] == "" {
+	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+	if len(parts) != 2 {
+		http.NotFound(w, r)
+		return
+	}
+	year, err := strconv.Atoi(parts[1])
+	if err != nil {
 		http.NotFound(w, r)
 		return
 	}
 
-	year, err := strconv.Atoi(parts[0])
-	if err != nil || year < 2000 || year > 3000 {
-		http.NotFound(w, r)
-		return
-	}
-
-	if len(parts) == 2 && parts[1] == "tiebreak" {
-		if r.Method != http.MethodPost {
-			http.NotFound(w, r)
-			return
-		}
+	if r.Method == http.MethodPost {
 		s.handleYearTiebreakPost(w, r, year)
 		return
 	}
 
-	if r.Method != http.MethodGet {
-		http.NotFound(w, r)
-		return
+	s.renderYear(w, year, "")
+}
+
+func (s *Server) renderYear(w http.ResponseWriter, year int, formErr string) {
+	players := s.store.ListPlayers()
+	pMap := make(map[int64]string, len(players))
+	for _, p := range players {
+		pMap[p.ID] = p.Name
 	}
 
-	s.renderYear(w, year, "")
+	ys := game.ComputeYearStandings(s.store.RecentGames(0), year, s.store.GetTiebreaker)
+
+	vm := YearVM{
+		Title:         "Year",
+		Version:       s.meta.Version,
+		BuildTime:     s.meta.BuildTime,
+		StartTime:     s.meta.StartTime,
+		YearNow:       time.Now().Year(),
+		Year:          year,
+		Players:       players,
+		PlayerNames:   pMap,
+		Stats:         ys.Stats,
+		Qualifiers:    ys.Qualifiers,
+		TopIDs:        ys.TopIDs,
+		WinnerID:      ys.WinnerID,
+		TieUnresolved: ys.TieUnresolved,
+		FormError:     formErr,
+	}
+
+	if err := s.r.HTML(w, "year", "year", vm); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func (s *Server) handleYearTiebreakPost(w http.ResponseWriter, r *http.Request, year int) {
@@ -336,89 +340,174 @@ func (s *Server) handleYearTiebreakPost(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 
-	ys := game.ComputeYearStandings(
-		s.store.RecentGames(0),
-		year,
-		len(game.Players),
-		s.store.GetTiebreaker,
-	)
+	ys := game.ComputeYearStandings(s.store.RecentGames(0), year, s.store.GetTiebreaker)
 
 	if len(ys.TopIDs) <= 1 {
 		s.renderYear(w, year, "This year is not tied—no tiebreaker needed.")
 		return
 	}
 
-	winnerID, err := strconv.Atoi(r.FormValue("winner_id"))
-	if err != nil {
-		s.renderYear(w, year, "Please select a winner.")
-		return
-	}
-	if !containsInt(ys.TopIDs, winnerID) {
-		s.renderYear(w, year, "Selected winner is not part of the tied group.")
+	winnerID, err := strconv.ParseInt(r.FormValue("winner_id"), 10, 64)
+	if err != nil || !containsInt64(ys.TopIDs, winnerID) {
+		s.renderYear(w, year, "Please select a valid winner from the tied leaders.")
 		return
 	}
 
-	s.store.SetTiebreaker(game.Tiebreaker{
+	tb := game.Tiebreaker{
 		Scope:         "yearly",
-		ScopeKey:      strconv.Itoa(year),
+		ScopeKey:      ys.ScopeKey,
 		TiedPlayerIDs: ys.TopIDs,
 		WinnerID:      winnerID,
 		Method:        "chance",
-		DecidedAt:     time.Now().UTC(),
-	})
+		DecidedAt:     time.Now(),
+	}
+	s.store.SetTiebreaker(tb)
 
-	s.renderYear(w, year, "")
+	s.renderYear(w, year, "Tiebreaker saved.")
 }
 
-func (s *Server) renderYear(w http.ResponseWriter, year int, formErr string) {
-	ys := game.ComputeYearStandings(
-		s.store.RecentGames(0),
-		year,
-		len(game.Players),
-		s.store.GetTiebreaker,
-	)
+// ============================
+// Players / Titles CRUD
+// ============================
 
-	vm := YearVM{
-		Title:     "Master of Games",
+func (s *Server) handlePlayers(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		if err := r.ParseForm(); err != nil {
+			s.renderPlayers(w, "Invalid form submission.")
+			return
+		}
+		name := strings.TrimSpace(r.FormValue("name"))
+		if name == "" {
+			s.renderPlayers(w, "Name is required.")
+			return
+		}
+		s.store.AddPlayer(name)
+		http.Redirect(w, r, "/players", http.StatusSeeOther)
+		return
+	}
+
+	s.renderPlayers(w, "")
+}
+
+func (s *Server) renderPlayers(w http.ResponseWriter, errMsg string) {
+	vm := PlayersVM{
+		Title:     "Players",
 		Version:   s.meta.Version,
 		BuildTime: s.meta.BuildTime,
 		StartTime: s.meta.StartTime,
 		YearNow:   time.Now().Year(),
-
-		Year:    year,
-		Players: game.Players,
-
-		Stats:         ys.Stats,
-		Qualifiers:    ys.Qualifiers,
-		TopIDs:        ys.TopIDs,
-		WinnerID:      ys.WinnerID,
-		TieUnresolved: len(ys.TopIDs) > 1 && ys.WinnerID == nil,
-
-		FormError: formErr,
+		Players:   s.store.ListPlayers(),
+		FormError: errMsg,
 	}
-
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := s.r.HTML(w, "year", "year", vm); err != nil {
+	if err := s.r.HTML(w, "players", "players", vm); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
-// handleHealthz is a health check that returns 200 OK.
-func (s *Server) handleHealthz(w http.ResponseWriter, _ *http.Request) {
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte("ok"))
-}
-
-// handleReadyz is a health check that returns 200 OK if the database is ready.
-func (s *Server) handleReadyz(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
-	defer cancel()
-
-	if err := s.db.Ping(ctx); err != nil {
-		http.Error(w, "db not ready", http.StatusServiceUnavailable)
+func (s *Server) handlePlayerUpdate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Redirect(w, r, "/players", http.StatusSeeOther)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte("ok"))
+	_ = r.ParseForm()
+	id, _ := strconv.ParseInt(r.FormValue("id"), 10, 64)
+	name := strings.TrimSpace(r.FormValue("name"))
+	if id <= 0 || name == "" {
+		http.Redirect(w, r, "/players", http.StatusSeeOther)
+		return
+	}
+	s.store.UpdatePlayer(id, name)
+	http.Redirect(w, r, "/players", http.StatusSeeOther)
+}
+
+func (s *Server) handlePlayerDelete(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Redirect(w, r, "/players", http.StatusSeeOther)
+		return
+	}
+	_ = r.ParseForm()
+	id, _ := strconv.ParseInt(r.FormValue("id"), 10, 64)
+	if id > 0 {
+		ok := s.store.DeletePlayer(id)
+		if !ok {
+			s.renderPlayers(w, "Unable to delete player (they may be referenced by an existing game).")
+			return
+		}
+	}
+	http.Redirect(w, r, "/players", http.StatusSeeOther)
+}
+
+func (s *Server) handleTitles(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		if err := r.ParseForm(); err != nil {
+			s.renderTitles(w, "Invalid form submission.")
+			return
+		}
+		name := strings.TrimSpace(r.FormValue("name"))
+		if name == "" {
+			s.renderTitles(w, "Name is required.")
+			return
+		}
+		s.store.AddTitle(name)
+		http.Redirect(w, r, "/titles", http.StatusSeeOther)
+		return
+	}
+	s.renderTitles(w, "")
+}
+
+func (s *Server) renderTitles(w http.ResponseWriter, errMsg string) {
+	vm := TitlesVM{
+		Title:     "Titles",
+		Version:   s.meta.Version,
+		BuildTime: s.meta.BuildTime,
+		StartTime: s.meta.StartTime,
+		YearNow:   time.Now().Year(),
+		Titles:    s.store.ListTitles(),
+		FormError: errMsg,
+	}
+	if err := s.r.HTML(w, "titles", "titles", vm); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (s *Server) handleTitleUpdate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Redirect(w, r, "/titles", http.StatusSeeOther)
+		return
+	}
+	_ = r.ParseForm()
+	id, _ := strconv.ParseInt(r.FormValue("id"), 10, 64)
+	name := strings.TrimSpace(r.FormValue("name"))
+	if id <= 0 || name == "" {
+		http.Redirect(w, r, "/titles", http.StatusSeeOther)
+		return
+	}
+	s.store.UpdateTitle(id, name)
+	http.Redirect(w, r, "/titles", http.StatusSeeOther)
+}
+
+func (s *Server) handleTitleDelete(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Redirect(w, r, "/titles", http.StatusSeeOther)
+		return
+	}
+	_ = r.ParseForm()
+	id, _ := strconv.ParseInt(r.FormValue("id"), 10, 64)
+	if id > 0 {
+		ok := s.store.DeleteTitle(id)
+		if !ok {
+			s.renderTitles(w, "Unable to delete title (it may be referenced by an existing game).")
+			return
+		}
+	}
+	http.Redirect(w, r, "/titles", http.StatusSeeOther)
+}
+
+func (s *Server) renderHomeWithError(w http.ResponseWriter, msg string, form HomeForm) {
+	vm := s.newHomeVM()
+	vm.FormError = msg
+	vm.Form = form
+	if err := s.r.HTML(w, "main", "home", vm); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }

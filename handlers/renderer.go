@@ -1,27 +1,38 @@
 package handlers
 
 import (
+	"errors"
 	"html/template"
 	"net/http"
 )
 
 type Renderer struct {
-	home *template.Template
-	week *template.Template
-	year *template.Template
+	home    *template.Template
+	week    *template.Template
+	year    *template.Template
+	players *template.Template
+	titles  *template.Template
 }
 
 // RendererConfig centralizes template paths.
 type RendererConfig struct {
-	Base string
-	Home string
-	Week string
-	Year string
+	Base    string
+	Home    string
+	Week    string
+	Year    string
+	Players string
+	Titles  string
 }
 
 func NewRenderer(cfg RendererConfig) *Renderer {
 	funcs := template.FuncMap{
 		"derefInt": func(p *int) int {
+			if p == nil {
+				return 0
+			}
+			return *p
+		},
+		"derefInt64": func(p *int64) int64 {
 			if p == nil {
 				return 0
 			}
@@ -35,34 +46,29 @@ func NewRenderer(cfg RendererConfig) *Renderer {
 	}
 
 	return &Renderer{
-		home: parse(cfg.Base, cfg.Home),
-		week: parse(cfg.Base, cfg.Week),
-		year: parse(cfg.Base, cfg.Year),
+		home:    parse(cfg.Base, cfg.Home),
+		week:    parse(cfg.Base, cfg.Week),
+		year:    parse(cfg.Base, cfg.Year),
+		players: parse(cfg.Base, cfg.Players),
+		titles:  parse(cfg.Base, cfg.Titles),
 	}
 }
 
-// HTML renders a named template from the selected set.
-// set: "home" | "week" | "year"
-// name: template name inside that set ("home", "week", "year")
-func (r *Renderer) HTML(w http.ResponseWriter, set, name string, vm any) error {
+func (r *Renderer) HTML(w http.ResponseWriter, layout, name string, data any) error {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 
-	var t *template.Template
-	switch set {
+	switch name {
 	case "home":
-		t = r.home
+		return r.home.ExecuteTemplate(w, layout, data)
 	case "week":
-		t = r.week
+		return r.week.ExecuteTemplate(w, layout, data)
 	case "year":
-		t = r.year
+		return r.year.ExecuteTemplate(w, layout, data)
+	case "players":
+		return r.players.ExecuteTemplate(w, layout, data)
+	case "titles":
+		return r.titles.ExecuteTemplate(w, layout, data)
 	default:
-		http.Error(w, "unknown template set", http.StatusInternalServerError)
-		return nil
+		return errors.New("unknown template: " + name)
 	}
-
-	if err := t.ExecuteTemplate(w, name, vm); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return err
-	}
-	return nil
 }

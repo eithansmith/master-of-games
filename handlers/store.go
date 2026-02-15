@@ -13,6 +13,16 @@ type Store interface {
 	DeleteGame(id int64) bool
 	RecentGames(limit int) []game.Game
 
+	ListPlayers() []game.Player
+	AddPlayer(name string) game.Player
+	UpdatePlayer(id int64, name string) bool
+	DeletePlayer(id int64) bool
+
+	ListTitles() []game.Title
+	AddTitle(name string) game.Title
+	UpdateTitle(id int64, name string) bool
+	DeleteTitle(id int64) bool
+
 	GetTiebreaker(scope, scopeKey string) (game.Tiebreaker, bool)
 	SetTiebreaker(tb game.Tiebreaker)
 }

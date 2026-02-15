@@ -1,4 +1,6 @@
 DROP TABLE IF EXISTS app.tiebreakers;
 DROP TABLE IF EXISTS app.games;
+DROP TABLE IF EXISTS app.players;
+DROP TABLE IF EXISTS app.titles;
 DROP FUNCTION IF EXISTS app.set_updated_at;
 DROP SCHEMA IF EXISTS app;

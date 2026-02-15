@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"time"
 )
 
 type PlayerYearStats struct {
-	PlayerID    int
+	PlayerID    int64
 	Attendance  int
 	GamesPlayed int
 	Wins        int
@@ -21,129 +22,140 @@ type YearStandings struct {
 
 	Stats []PlayerYearStats
 
-	Qualifiers []int // player IDs
-	TopIDs     []int // tied leaders by win_rate among qualifiers
-	WinnerID   *int
+	Qualifiers []int64 // player IDs
+	TopIDs     []int64 // tied leaders
+	WinnerID   *int64
+
+	TieUnresolved bool
 }
 
+func YearScopeKey(year int) string { return fmt.Sprintf("%d", year) }
+
+// ComputeYearStandings filters games to the requested year, computes attendance/wins, and applies any stored tiebreaker.
 func ComputeYearStandings(
 	games []Game,
 	year int,
-	playersCount int,
-	lookupTiebreaker func(scope, scopeKey string) (Tiebreaker, bool),
+	getTB func(scope, scopeKey string) (Tiebreaker, bool),
 ) YearStandings {
-	//scopeKey := itoaYear(year)
-
-	// attendanceDays[pid] = set of dates (yyyy-mm-dd) they participated
-	attendanceDays := make([]map[string]bool, playersCount)
-	for i := range attendanceDays {
-		attendanceDays[i] = map[string]bool{}
+	ys := YearStandings{
+		Year:     year,
+		ScopeKey: YearScopeKey(year),
 	}
 
-	stats := make([]PlayerYearStats, playersCount)
-	for pid := 0; pid < playersCount; pid++ {
-		stats[pid] = PlayerYearStats{PlayerID: pid}
-	}
+	// Attendance: a player attended a day if they were a participant on that day.
+	attendedDays := map[int64]map[string]bool{} // playerID -> dateKey -> true
+	playedCount := map[int64]int{}
+	winsCount := map[int64]int{}
 
 	for _, g := range games {
-		if g.PlayedAt.Year() != year {
+		if g.PlayedAt.In(time.Local).Year() != year {
 			continue
 		}
-		if !IsWeekdayLocal(g.PlayedAt) {
-			continue
-		}
-
-		dayKey := g.PlayedAt.Format("2006-01-02") // local date; fine for now
-
-		// Games played + attendance
+		dateKey := g.PlayedAt.In(time.Local).Format("2006-01-02")
 		for _, pid := range g.ParticipantIDs {
-			stats[pid].GamesPlayed++
-			attendanceDays[pid][dayKey] = true
+			if attendedDays[pid] == nil {
+				attendedDays[pid] = map[string]bool{}
+			}
+			attendedDays[pid][dateKey] = true
+			playedCount[pid]++
 		}
-
-		// Wins
 		for _, wid := range g.WinnerIDs {
-			stats[wid].Wins++
+			winsCount[wid]++
 		}
 	}
 
-	// Attendance counts
-	for pid := 0; pid < playersCount; pid++ {
-		stats[pid].Attendance = len(attendanceDays[pid])
-		if stats[pid].GamesPlayed > 0 {
-			stats[pid].WinRate = float64(stats[pid].Wins) / float64(stats[pid].GamesPlayed)
+	// Build stats
+	keys := unionKeys(attendedDays, playedCount, winsCount)
+	for pid := range keys {
+		att := len(attendedDays[pid])
+		gp := playedCount[pid]
+		wins := winsCount[pid]
+		wr := 0.0
+		if gp > 0 {
+			wr = float64(wins) / float64(gp)
 		}
+		ys.Stats = append(ys.Stats, PlayerYearStats{
+			PlayerID:    pid,
+			Attendance:  att,
+			GamesPlayed: gp,
+			Wins:        wins,
+			WinRate:     math.Round(wr*1000) / 10, // one decimal percent
+		})
 	}
 
-	// Determine qualifiers: top half by attendance (ceil(N/2))
-	type arow struct{ pid, att int }
-	rows := make([]arow, 0, playersCount)
-	for pid := 0; pid < playersCount; pid++ {
-		rows = append(rows, arow{pid: pid, att: stats[pid].Attendance})
-	}
-	sort.Slice(rows, func(i, j int) bool {
-		if rows[i].att != rows[j].att {
-			return rows[i].att > rows[j].att
+	// Sort by wins desc, then win rate desc, then id asc
+	sort.Slice(ys.Stats, func(i, j int) bool {
+		if ys.Stats[i].Wins != ys.Stats[j].Wins {
+			return ys.Stats[i].Wins > ys.Stats[j].Wins
 		}
-		return rows[i].pid < rows[j].pid
+		if ys.Stats[i].WinRate != ys.Stats[j].WinRate {
+			return ys.Stats[i].WinRate > ys.Stats[j].WinRate
+		}
+		return ys.Stats[i].PlayerID < ys.Stats[j].PlayerID
 	})
 
-	qCount := int(math.Ceil(float64(playersCount) / 2.0))
-	if qCount < 1 {
-		qCount = 1
-	}
-	qualSet := map[int]bool{}
-	for i := 0; i < qCount && i < len(rows); i++ {
-		qualSet[rows[i].pid] = true
-	}
-	var qualifiers []int
-	for pid := 0; pid < playersCount; pid++ {
-		stats[pid].Qualified = qualSet[pid]
-		if stats[pid].Qualified {
-			qualifiers = append(qualifiers, pid)
+	// Qualify: attendance >= 10 (same rule as before)
+	for i := range ys.Stats {
+		if ys.Stats[i].Attendance >= 10 {
+			ys.Stats[i].Qualified = true
+			ys.Qualifiers = append(ys.Qualifiers, ys.Stats[i].PlayerID)
 		}
 	}
 
-	ys := YearStandings{
-		Year:       year,
-		ScopeKey:   itoaYear(year),
-		Stats:      stats,
-		Qualifiers: qualifiers,
-	}
-
-	// If nobody qualified with any games played, there is no winner.
-	// (Rare, but safe)
-	best := -1.0
-	for _, pid := range qualifiers {
-		// You might decide to exclude games_played == 0 from contention
-		// For now, keep them; winRate will be 0.
-		if stats[pid].WinRate > best {
-			best = stats[pid].WinRate
+	// Determine top among qualified (or among all if no qualifiers)
+	candidates := ys.Qualifiers
+	if len(candidates) == 0 {
+		for _, st := range ys.Stats {
+			candidates = append(candidates, st.PlayerID)
 		}
 	}
 
-	var top []int
-	for _, pid := range qualifiers {
-		if stats[pid].WinRate == best {
-			top = append(top, pid)
+	maxWins := -1
+	for _, pid := range candidates {
+		w := winsCount[pid]
+		if w > maxWins {
+			maxWins = w
 		}
 	}
-	ys.TopIDs = top
+	for _, pid := range candidates {
+		if winsCount[pid] == maxWins && maxWins >= 0 {
+			ys.TopIDs = append(ys.TopIDs, pid)
+		}
+	}
+	sort.Slice(ys.TopIDs, func(i, j int) bool { return ys.TopIDs[i] < ys.TopIDs[j] })
 
-	if len(top) == 1 {
-		ys.WinnerID = &top[0]
+	if len(ys.TopIDs) == 1 {
+		ys.WinnerID = &ys.TopIDs[0]
 		return ys
 	}
 
-	// Tie: check tiebreaker
-	if tb, ok := lookupTiebreaker("yearly", itoaYear(year)); ok {
-		ys.WinnerID = &tb.WinnerID
+	if len(ys.TopIDs) > 1 {
+		if getTB != nil {
+			if tb, ok := getTB("yearly", ys.ScopeKey); ok {
+				if containsID(ys.TopIDs, tb.WinnerID) {
+					wid := tb.WinnerID
+					ys.WinnerID = &wid
+					return ys
+				}
+			}
+		}
+		ys.TieUnresolved = true
 	}
 
 	return ys
 }
 
-func itoaYear(year int) string {
-	// use strconv.Itoa in real code
-	return fmt.Sprintf("%d", year)
+// unionKeys returns a set of keys across three maps.
+func unionKeys(m1 map[int64]map[string]bool, m2 map[int64]int, m3 map[int64]int) map[int64]struct{} {
+	out := map[int64]struct{}{}
+	for k := range m1 {
+		out[k] = struct{}{}
+	}
+	for k := range m2 {
+		out[k] = struct{}{}
+	}
+	for k := range m3 {
+		out[k] = struct{}{}
+	}
+	return out
 }
