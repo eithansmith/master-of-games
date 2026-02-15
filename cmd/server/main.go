@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"time"
 
+	"github.com/eithansmith/master-of-games/db"
 	"github.com/eithansmith/master-of-games/game"
 	"github.com/eithansmith/master-of-games/handlers"
 )
@@ -23,7 +25,15 @@ func main() {
 		StartTime: time.Now().UTC().Format(time.RFC3339),
 	}
 
-	s := handlers.New(game.NewMemoryStore(), meta)
+	pool, err := db.NewPool(context.Background())
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer pool.Close()
+
+	store := game.NewPostgresStore(pool)
+
+	s := handlers.New(store, pool, meta)
 
 	mux := http.NewServeMux()
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("web/static"))))

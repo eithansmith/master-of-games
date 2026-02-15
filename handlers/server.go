@@ -15,11 +15,12 @@ type Meta struct {
 type Server struct {
 	r     *Renderer
 	store Store
+	db    Pinger
 	meta  Meta
 }
 
 // New constructs a Server with default template paths.
-func New(store Store, meta Meta) *Server {
+func New(store Store, db Pinger, meta Meta) *Server {
 	r := NewRenderer(RendererConfig{
 		Base: "web/templates/base.go.html",
 		Home: "web/templates/home.go.html",
@@ -30,6 +31,7 @@ func New(store Store, meta Meta) *Server {
 	return &Server{
 		r:     r,
 		store: store,
+		db:    db,
 		meta:  meta,
 	}
 }
@@ -42,5 +44,6 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/weeks/current", s.handleWeekCurrent)
 	mux.HandleFunc("/weeks/", s.handleWeek) // GET + POST tiebreak
 	mux.HandleFunc("/years/", s.handleYear) // GET + POST tiebreak
-	mux.HandleFunc("/healthz", healthz)
+	mux.HandleFunc("/healthz", s.handleHealthz)
+	mux.HandleFunc("/readyz", s.handleReadyz)
 }
