@@ -105,6 +105,36 @@ func (s *MemoryStore) RecentGames(limit int) []Game {
 	return out
 }
 
+func (s *MemoryStore) GamesByWeek(year, week int) []Game {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	out := make([]Game, 0, len(s.games))
+	for _, g := range s.games {
+		if g.PlayedAt.Year() == year && g.PlayedAt.Weekday() == time.Weekday(week) {
+			out = append(out, g)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].PlayedAt.Before(out[j].PlayedAt) })
+
+	return out
+}
+
+func (s *MemoryStore) GamesByYear(year int) []Game {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	out := make([]Game, 0, len(s.games))
+	for _, g := range s.games {
+		if g.PlayedAt.Year() == year {
+			out = append(out, g)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].PlayedAt.Before(out[j].PlayedAt) })
+
+	return out
+}
+
 // ============================
 // Players
 // ============================

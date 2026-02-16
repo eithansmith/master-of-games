@@ -279,7 +279,8 @@ func (s *Server) renderWeek(w http.ResponseWriter, year, week int, formErr strin
 	py, pw := prevISOWeek(year, week)
 	ny, nw := nextISOWeek(year, week)
 
-	ws := game.ComputeWeekStandings(s.store.RecentGames(0), year, week, s.store.GetTiebreaker)
+	gamesByWeek := s.store.GamesByWeek(year, week)
+	ws := game.ComputeWeekStandings(gamesByWeek, year, week, s.store.GetTiebreaker)
 
 	vm := WeekVM{
 		Title:         "Week",
@@ -318,7 +319,8 @@ func (s *Server) handleWeekTiebreakPost(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 
-	ws := game.ComputeWeekStandings(s.store.RecentGames(0), year, week, s.store.GetTiebreaker)
+	gamesByWeek := s.store.GamesByWeek(year, week)
+	ws := game.ComputeWeekStandings(gamesByWeek, year, week, s.store.GetTiebreaker)
 
 	if ws.TotalGames == 0 {
 		s.renderWeek(w, year, week, "No games were played this week—no tiebreaker needed.")
@@ -375,7 +377,8 @@ func (s *Server) renderYear(w http.ResponseWriter, year int, formErr string) {
 		pMap[p.ID] = p.Name
 	}
 
-	ys := game.ComputeYearStandings(s.store.RecentGames(0), year, s.store.GetTiebreaker)
+	gamesByYear := s.store.GamesByYear(year)
+	ys := game.ComputeYearStandings(gamesByYear, year, s.store.GetTiebreaker)
 
 	vm := YearVM{
 		Title:         "Year",
@@ -405,7 +408,8 @@ func (s *Server) handleYearTiebreakPost(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 
-	ys := game.ComputeYearStandings(s.store.RecentGames(0), year, s.store.GetTiebreaker)
+	gamesByYear := s.store.GamesByYear(year)
+	ys := game.ComputeYearStandings(gamesByYear, year, s.store.GetTiebreaker)
 
 	if len(ys.TopIDs) <= 1 {
 		s.renderYear(w, year, "This year is not tied—no tiebreaker needed.")

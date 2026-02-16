@@ -3,7 +3,6 @@ package game
 import (
 	"fmt"
 	"sort"
-	"time"
 )
 
 type WeekStandings struct {
@@ -23,7 +22,7 @@ func WeekScopeKey(year, week int) string {
 	return fmt.Sprintf("%04d-W%02d", year, week)
 }
 
-// ComputeWeekStandings filters games to the requested ISO year+week, counts wins, and applies any stored tiebreaker.
+// ComputeWeekStandings computes the standings for a given week.
 func ComputeWeekStandings(
 	games []Game,
 	year, week int,
@@ -33,21 +32,17 @@ func ComputeWeekStandings(
 		Year:     year,
 		Week:     week,
 		ScopeKey: WeekScopeKey(year, week),
-		Wins:     map[int64]int{},
+
+		TotalGames: len(games),
+		Wins:       map[int64]int{},
 	}
 
 	for _, g := range games {
-		y, w := g.PlayedAt.In(time.Local).ISOWeek()
-		if y != year || w != week {
-			continue
-		}
-		ws.TotalGames++
 		for _, wid := range g.WinnerIDs {
 			ws.Wins[wid]++
 		}
 	}
 
-	// Determine leaders
 	maxWins := 0
 	for _, w := range ws.Wins {
 		if w > maxWins {

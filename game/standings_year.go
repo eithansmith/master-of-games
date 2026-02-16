@@ -31,7 +31,7 @@ type YearStandings struct {
 
 func YearScopeKey(year int) string { return fmt.Sprintf("%d", year) }
 
-// ComputeYearStandings filters games to the requested year, computes attendance/wins, and applies any stored tiebreaker.
+// ComputeYearStandings computes the standings for a given year.
 func ComputeYearStandings(
 	games []Game,
 	year int,
@@ -48,9 +48,6 @@ func ComputeYearStandings(
 	winsCount := map[int64]int{}
 
 	for _, g := range games {
-		if g.PlayedAt.In(time.Local).Year() != year {
-			continue
-		}
 		dateKey := g.PlayedAt.In(time.Local).Format("2006-01-02")
 		for _, pid := range g.ParticipantIDs {
 			if attendedDays[pid] == nil {

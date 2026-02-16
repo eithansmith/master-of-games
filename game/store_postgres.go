@@ -78,7 +78,8 @@ func (s *PostgresStore) RecentGames(limit int) []Game {
 		  FROM app.games g
 		  JOIN app.titles t ON t.id = g.title_id
 		 ORDER BY g.played_at DESC, g.id DESC`
-	args := []any{}
+
+	var args []any
 	if limit > 0 {
 		q += ` LIMIT $1`
 		args = append(args, limit)
@@ -103,6 +104,66 @@ func (s *PostgresStore) RecentGames(limit int) []Game {
 	}
 	return out
 }
+func (s *PostgresStore) GamesByWeek(year, week int) []Game {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	q := `SELECT g.id, g.played_at, g.title_id, t.name, g.participant_ids, g.winner_ids, g.notes, g.is_active
+		  FROM app.games g
+		  JOIN app.titles t ON t.id = g.title_id
+		 WHERE EXTRACT(YEAR FROM g.played_at) = $1 AND EXTRACT(WEEK FROM g.played_at) = $2
+		 ORDER BY g.played_at, g.id`
+
+	rows, err := s.db.Query(ctx, q, year, week)
+	if err != nil {
+		panic(fmt.Errorf("GamesByYearAndWeek query: %w", err))
+	}
+	defer rows.Close()
+
+	out := make([]Game, 0, 100)
+	for rows.Next() {
+		var g Game
+		if err := rows.Scan(&g.ID, &g.PlayedAt, &g.TitleID, &g.Title, &g.ParticipantIDs, &g.WinnerIDs, &g.Notes, &g.IsActive); err != nil {
+			panic(fmt.Errorf("GamesByYearAndWeek scan: %w", err))
+		}
+		out = append(out, g)
+	}
+	if err := rows.Err(); err != nil {
+		panic(fmt.Errorf("GamesByYearAndWeek rows: %w", err))
+	}
+
+	return out
+}
+
+func (s *PostgresStore) GamesByYear(year int) []Game {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	q := `SELECT g.id, g.played_at, g.title_id, t.name, g.participant_ids, g.winner_ids, g.notes, g.is_active
+		  FROM app.games g
+		  JOIN app.titles t ON t.id = g.title_id
+		 WHERE EXTRACT(YEAR FROM g.played_at) = $1
+		 ORDER BY g.played_at, g.id`
+
+	rows, err := s.db.Query(ctx, q, year)
+	if err != nil {
+		panic(fmt.Errorf("GamesByYear query: %w", err))
+	}
+	defer rows.Close()
+
+	out := make([]Game, 0, 100)
+	for rows.Next() {
+		var g Game
+		if err := rows.Scan(&g.ID, &g.PlayedAt, &g.TitleID, &g.Title, &g.ParticipantIDs, &g.WinnerIDs, &g.Notes, &g.IsActive); err != nil {
+			panic(fmt.Errorf("GamesByYear scan: %w", err))
+		}
+	}
+	if err := rows.Err(); err != nil {
+		panic(fmt.Errorf("GamesByYear rows: %w", err))
+	}
+
+	return out
+}
 
 // ============================
 // Players
@@ -118,7 +179,7 @@ func (s *PostgresStore) ListPlayers() []Player {
 	}
 	defer rows.Close()
 
-	out := []Player{}
+	var out []Player
 	for rows.Next() {
 		var p Player
 		if err := rows.Scan(&p.ID, &p.Name, &p.IsActive); err != nil {
@@ -170,7 +231,7 @@ func (s *PostgresStore) DeletePlayer(id int64) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	// Prevent deleting a player that is referenced by any game.
+	// Prevent deleting a player referenced by any game.
 	var exists bool
 	err := s.db.QueryRow(ctx,
 		`SELECT EXISTS (
@@ -206,7 +267,7 @@ func (s *PostgresStore) ListTitles() []Title {
 	}
 	defer rows.Close()
 
-	out := []Title{}
+	var out []Title
 	for rows.Next() {
 		var t Title
 		if err := rows.Scan(&t.ID, &t.Name, &t.IsActive); err != nil {

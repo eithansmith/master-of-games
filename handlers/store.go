@@ -16,6 +16,8 @@ type Store interface {
 	DeleteGame(id int64) bool
 	SetGameActive(id int64, active bool) bool
 	RecentGames(limit int) []game.Game
+	GamesByWeek(year, week int) []game.Game
+	GamesByYear(year int) []game.Game
 
 	// players
 	ListPlayers() []game.Player
