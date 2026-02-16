@@ -26,7 +26,7 @@ func WeekScopeKey(year, week int) string {
 func ComputeWeekStandings(
 	games []Game,
 	year, week int,
-	getTB func(scope, scopeKey string) (Tiebreaker, bool),
+	getTB func(scope, scopeKey string) (Tiebreaker, bool, error),
 ) WeekStandings {
 	ws := WeekStandings{
 		Year:     year,
@@ -64,7 +64,11 @@ func ComputeWeekStandings(
 	if len(ws.TopIDs) > 1 {
 		// If we have a stored tiebreaker, apply it.
 		if getTB != nil {
-			if tb, ok := getTB("weekly", ws.ScopeKey); ok {
+			tb, ok, err := getTB("weekly", ws.ScopeKey)
+			if err != nil {
+				panic(err)
+			}
+			if ok {
 				if containsID(ws.TopIDs, tb.WinnerID) {
 					wid := tb.WinnerID
 					ws.WinnerID = &wid

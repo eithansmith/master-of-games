@@ -35,7 +35,7 @@ func YearScopeKey(year int) string { return fmt.Sprintf("%d", year) }
 func ComputeYearStandings(
 	games []Game,
 	year int,
-	getTB func(scope, scopeKey string) (Tiebreaker, bool),
+	getTB func(scope, scopeKey string) (Tiebreaker, bool, error),
 ) YearStandings {
 	ys := YearStandings{
 		Year:     year,
@@ -128,7 +128,11 @@ func ComputeYearStandings(
 
 	if len(ys.TopIDs) > 1 {
 		if getTB != nil {
-			if tb, ok := getTB("yearly", ys.ScopeKey); ok {
+			tb, ok, err := getTB("yearly", ys.ScopeKey)
+			if err != nil {
+				panic(err)
+			}
+			if ok {
 				if containsID(ys.TopIDs, tb.WinnerID) {
 					wid := tb.WinnerID
 					ys.WinnerID = &wid
