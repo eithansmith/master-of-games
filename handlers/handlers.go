@@ -60,15 +60,9 @@ func (s *Server) newHomeVM(showAllGames bool) HomeVM {
 	return vm
 }
 
-func (s *Server) defaultHomeForm(_ []game.Player, titles []game.Title) HomeForm {
-	// Default title: first title alphabetically (ListTitles already returns ordered in both stores)
-	var titleID int64
-	if len(titles) > 0 {
-		titleID = titles[0].ID
-	}
-
+func (s *Server) defaultHomeForm(_ []game.Player, _ []game.Title) HomeForm {
 	return HomeForm{
-		TitleID:      titleID,
+		TitleID:      0,
 		PlayedAt:     time.Now().Format("2006-01-02T15:04"),
 		Participants: map[int64]bool{},
 		Winners:      map[int64]bool{},
