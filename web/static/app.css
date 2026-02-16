@@ -76,7 +76,7 @@ h1 {
     margin-top: 10px;
 }
 
-select, input[type="datetime-local"] {
+select, input[type="datetime-local"], input[type="text"], textarea {
     width: 100%;
     margin-top: 6px;
     padding: 10px 12px;

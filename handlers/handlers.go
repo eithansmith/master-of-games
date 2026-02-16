@@ -115,8 +115,13 @@ func (s *Server) handleAddGame(w http.ResponseWriter, r *http.Request) {
 	playedAtStr := strings.TrimSpace(r.FormValue("played_at"))
 	notes := strings.TrimSpace(r.FormValue("notes"))
 
+	loc, err := time.LoadLocation("America/Chicago")
+	if err != nil {
+		loc = time.UTC
+	}
+
 	if playedAtStr == "" {
-		playedAtStr = time.Now().Format("2006-01-02T15:04")
+		playedAtStr = time.Now().In(loc).Format("2006-01-02T15:04")
 	}
 
 	titleID, err := strconv.ParseInt(titleIDStr, 10, 64)

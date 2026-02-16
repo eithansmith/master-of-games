@@ -128,10 +128,10 @@
         <h1>Wins</h1>
 
         <div class="list">
-            {{ range $idx, $name := .Players }}
+            {{ range $idx, $player := .Players }}
                 <div class="list-item">
                     <div class="li-main">
-                        <div class="li-title">{{ $name }}</div>
+                        <div class="li-title">{{ $player.Name }}</div>
                         <div class="li-sub">
                             Wins:
                             {{ $w := index $.Wins $idx }}
