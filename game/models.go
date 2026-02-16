@@ -3,13 +3,15 @@ package game
 import "time"
 
 type Player struct {
-	ID   int64
-	Name string
+	ID       int64
+	Name     string
+	IsActive bool
 }
 
 type Title struct {
-	ID   int64
-	Name string
+	ID       int64
+	Name     string
+	IsActive bool
 }
 
 type Game struct {
@@ -22,6 +24,8 @@ type Game struct {
 	ParticipantIDs []int64
 	WinnerIDs      []int64
 	Notes          string
+
+	IsActive bool
 }
 
 type Tiebreaker struct {

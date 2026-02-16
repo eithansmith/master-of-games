@@ -11,7 +11,7 @@ type Meta struct {
 	StartTime string
 }
 
-// Server owns HTTP handlers and template rendering for the app.
+// Server owns HTTP handlers + template rendering for the app.
 type Server struct {
 	r     *Renderer
 	store Store
@@ -42,7 +42,8 @@ func New(store Store, db Pinger, meta Meta) *Server {
 func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/", s.handleHome)
 	mux.HandleFunc("/games", s.handleAddGame)           // POST
-	mux.HandleFunc("/games/delete", s.handleDeleteGame) // POST
+	mux.HandleFunc("/games/delete", s.handleDeleteGame) // POST (legacy alias)
+	mux.HandleFunc("/games/toggle", s.handleGameToggle) // POST
 	mux.HandleFunc("/weeks/current", s.handleWeekCurrent)
 	mux.HandleFunc("/weeks/", s.handleWeek) // GET + POST tiebreak
 	mux.HandleFunc("/years/", s.handleYear) // GET + POST tiebreak
@@ -50,11 +51,13 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	// Admin-ish lists (simple CRUD)
 	mux.HandleFunc("/players", s.handlePlayers)             // GET + POST
 	mux.HandleFunc("/players/update", s.handlePlayerUpdate) // POST
-	mux.HandleFunc("/players/delete", s.handlePlayerDelete) // POST
+	mux.HandleFunc("/players/delete", s.handlePlayerDelete) // POST (legacy alias)
+	mux.HandleFunc("/players/toggle", s.handlePlayerToggle) // POST
 
 	mux.HandleFunc("/titles", s.handleTitles)             // GET + POST
 	mux.HandleFunc("/titles/update", s.handleTitleUpdate) // POST
-	mux.HandleFunc("/titles/delete", s.handleTitleDelete) // POST
+	mux.HandleFunc("/titles/delete", s.handleTitleDelete) // POST (legacy alias)
+	mux.HandleFunc("/titles/toggle", s.handleTitleToggle) // POST
 
 	mux.HandleFunc("/healthz", s.handleHealthz)
 	mux.HandleFunc("/readyz", s.handleReadyz)

@@ -17,10 +17,11 @@ type HomeVM struct {
 	StartTime string
 	YearNow   int
 
-	Players     []game.Player
-	PlayerNames map[int64]string
-	Titles      []game.Title
-	Games       []game.Game
+	Players      []game.Player
+	PlayerNames  map[int64]string
+	Titles       []game.Title
+	Games        []game.Game
+	ShowAllGames bool
 
 	FormError string
 	Form      HomeForm

@@ -10,11 +10,25 @@ import (
 	"github.com/eithansmith/master-of-games/game"
 )
 
-func (s *Server) newHomeVM() HomeVM {
-	players := s.store.ListPlayers()
-	titles := s.store.ListTitles()
-	pMap := make(map[int64]string, len(players))
-	for _, p := range players {
+func (s *Server) newHomeVM(showAllGames bool) HomeVM {
+	allPlayers := s.store.ListPlayers()
+	allTitles := s.store.ListTitles()
+
+	players := make([]game.Player, 0, len(allPlayers))
+	for _, p := range allPlayers {
+		if p.IsActive {
+			players = append(players, p)
+		}
+	}
+	titles := make([]game.Title, 0, len(allTitles))
+	for _, t := range allTitles {
+		if t.IsActive {
+			titles = append(titles, t)
+		}
+	}
+
+	pMap := make(map[int64]string, len(allPlayers))
+	for _, p := range allPlayers {
 		pMap[p.ID] = p.Name
 	}
 
@@ -27,8 +41,21 @@ func (s *Server) newHomeVM() HomeVM {
 		Players:     players,
 		PlayerNames: pMap,
 		Titles:      titles,
-		Games:       s.store.RecentGames(25),
-		Form:        s.defaultHomeForm(players, titles),
+		Games: func() []game.Game {
+			gs := s.store.RecentGames(25)
+			if showAllGames {
+				return gs
+			}
+			out := make([]game.Game, 0, len(gs))
+			for _, g := range gs {
+				if g.IsActive {
+					out = append(out, g)
+				}
+			}
+			return out
+		}(),
+		ShowAllGames: showAllGames,
+		Form:         s.defaultHomeForm(players, titles),
 	}
 	return vm
 }
@@ -49,8 +76,9 @@ func (s *Server) defaultHomeForm(_ []game.Player, titles []game.Title) HomeForm 
 	}
 }
 
-func (s *Server) handleHome(w http.ResponseWriter, _ *http.Request) {
-	vm := s.newHomeVM()
+func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
+	showAll := r.URL.Query().Get("all") == "1"
+	vm := s.newHomeVM(showAll)
 	if err := s.r.HTML(w, "home", "home", vm); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -62,8 +90,21 @@ func (s *Server) handleAddGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	players := s.store.ListPlayers()
-	titles := s.store.ListTitles()
+	allPlayers := s.store.ListPlayers()
+	allTitles := s.store.ListTitles()
+
+	players := make([]game.Player, 0, len(allPlayers))
+	for _, p := range allPlayers {
+		if p.IsActive {
+			players = append(players, p)
+		}
+	}
+	titles := make([]game.Title, 0, len(allTitles))
+	for _, t := range allTitles {
+		if t.IsActive {
+			titles = append(titles, t)
+		}
+	}
 
 	if err := r.ParseForm(); err != nil {
 		s.renderHomeWithError(w, "Invalid form submission.", s.defaultHomeForm(players, titles))
@@ -139,7 +180,7 @@ func (s *Server) handleAddGame(w http.ResponseWriter, r *http.Request) {
 	s.store.AddGame(g)
 
 	// HTMX will swap #main, but a redirect works fine too.
-	vm := s.newHomeVM()
+	vm := s.newHomeVM(false)
 	vm.Form = s.defaultHomeForm(vm.Players, vm.Titles)
 	if err := s.r.HTML(w, "main", "home", vm); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -154,10 +195,30 @@ func (s *Server) handleDeleteGame(w http.ResponseWriter, r *http.Request) {
 
 	id, _ := strconv.ParseInt(r.FormValue("id"), 10, 64)
 	if id > 0 {
-		s.store.DeleteGame(id)
+		s.store.SetGameActive(id, false)
 	}
 
-	vm := s.newHomeVM()
+	vm := s.newHomeVM(false)
+	if err := s.r.HTML(w, "main", "home", vm); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (s *Server) handleGameToggle(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	_ = r.ParseForm()
+	id, _ := strconv.ParseInt(r.FormValue("id"), 10, 64)
+	active := r.FormValue("active") == "1"
+
+	if id > 0 {
+		s.store.SetGameActive(id, active)
+	}
+
+	vm := s.newHomeVM(false)
 	if err := s.r.HTML(w, "main", "home", vm); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -194,13 +255,13 @@ func (s *Server) handleWeek(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) renderWeek(w http.ResponseWriter, year, week int, formErr string) {
-	players := s.store.ListPlayers()
-	pMap := make(map[int64]string, len(players))
-	for _, p := range players {
+	allPlayers := s.store.ListPlayers()
+	pMap := make(map[int64]string, len(allPlayers))
+	for _, p := range allPlayers {
 		pMap[p.ID] = p.Name
 	}
 
-	years := make([]int, 0)
+	var years []int
 	yNow := time.Now().Year()
 	for y := yNow - 2; y <= yNow+1; y++ {
 		years = append(years, y)
@@ -232,7 +293,7 @@ func (s *Server) renderWeek(w http.ResponseWriter, year, week int, formErr strin
 		NextYear:      ny,
 		NextWeek:      nw,
 		HasNext:       true,
-		Players:       players,
+		Players:       allPlayers,
 		PlayerNames:   pMap,
 		TotalGames:    ws.TotalGames,
 		Wins:          ws.Wins,
@@ -304,9 +365,9 @@ func (s *Server) handleYear(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) renderYear(w http.ResponseWriter, year int, formErr string) {
-	players := s.store.ListPlayers()
-	pMap := make(map[int64]string, len(players))
-	for _, p := range players {
+	allPlayers := s.store.ListPlayers()
+	pMap := make(map[int64]string, len(allPlayers))
+	for _, p := range allPlayers {
 		pMap[p.ID] = p.Name
 	}
 
@@ -319,7 +380,7 @@ func (s *Server) renderYear(w http.ResponseWriter, year int, formErr string) {
 		StartTime:     s.meta.StartTime,
 		YearNow:       time.Now().Year(),
 		Year:          year,
-		Players:       players,
+		Players:       allPlayers,
 		PlayerNames:   pMap,
 		Stats:         ys.Stats,
 		Qualifiers:    ys.Qualifiers,
@@ -420,6 +481,20 @@ func (s *Server) handlePlayerUpdate(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/players", http.StatusSeeOther)
 }
 
+func (s *Server) handlePlayerToggle(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Redirect(w, r, "/players", http.StatusSeeOther)
+		return
+	}
+	_ = r.ParseForm()
+	id, _ := strconv.ParseInt(r.FormValue("id"), 10, 64)
+	active := r.FormValue("active") == "1"
+	if id > 0 {
+		s.store.SetPlayerActive(id, active)
+	}
+	http.Redirect(w, r, "/players", http.StatusSeeOther)
+}
+
 func (s *Server) handlePlayerDelete(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Redirect(w, r, "/players", http.StatusSeeOther)
@@ -428,7 +503,7 @@ func (s *Server) handlePlayerDelete(w http.ResponseWriter, r *http.Request) {
 	_ = r.ParseForm()
 	id, _ := strconv.ParseInt(r.FormValue("id"), 10, 64)
 	if id > 0 {
-		ok := s.store.DeletePlayer(id)
+		ok := s.store.SetPlayerActive(id, false)
 		if !ok {
 			s.renderPlayers(w, "Unable to delete player (they may be referenced by an existing game).")
 			return
@@ -486,6 +561,20 @@ func (s *Server) handleTitleUpdate(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/titles", http.StatusSeeOther)
 }
 
+func (s *Server) handleTitleToggle(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Redirect(w, r, "/titles", http.StatusSeeOther)
+		return
+	}
+	_ = r.ParseForm()
+	id, _ := strconv.ParseInt(r.FormValue("id"), 10, 64)
+	active := r.FormValue("active") == "1"
+	if id > 0 {
+		s.store.SetTitleActive(id, active)
+	}
+	http.Redirect(w, r, "/titles", http.StatusSeeOther)
+}
+
 func (s *Server) handleTitleDelete(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Redirect(w, r, "/titles", http.StatusSeeOther)
@@ -494,7 +583,7 @@ func (s *Server) handleTitleDelete(w http.ResponseWriter, r *http.Request) {
 	_ = r.ParseForm()
 	id, _ := strconv.ParseInt(r.FormValue("id"), 10, 64)
 	if id > 0 {
-		ok := s.store.DeleteTitle(id)
+		ok := s.store.SetTitleActive(id, false)
 		if !ok {
 			s.renderTitles(w, "Unable to delete title (it may be referenced by an existing game).")
 			return
@@ -504,7 +593,7 @@ func (s *Server) handleTitleDelete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) renderHomeWithError(w http.ResponseWriter, msg string, form HomeForm) {
-	vm := s.newHomeVM()
+	vm := s.newHomeVM(false)
 	vm.FormError = msg
 	vm.Form = form
 	if err := s.r.HTML(w, "main", "home", vm); err != nil {

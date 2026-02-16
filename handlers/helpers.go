@@ -71,8 +71,8 @@ func prevISOWeek(year, week int) (int, int) {
 
 // nextISOWeek returns the next ISO week of the given year and week number.
 func nextISOWeek(year, week int) (int, int) {
-	weeksInYear := isoWeeksInYear(year)
-	if week < weeksInYear {
+	maximum := isoWeeksInYear(year)
+	if week < maximum {
 		return year, week + 1
 	}
 	return year + 1, 1

@@ -48,6 +48,7 @@ func (s *PostgresStore) AddGame(g Game) Game {
 }
 
 func (s *PostgresStore) DeleteGame(id int64) bool {
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -58,15 +59,26 @@ func (s *PostgresStore) DeleteGame(id int64) bool {
 	return ct.RowsAffected() > 0
 }
 
+func (s *PostgresStore) SetGameActive(id int64, active bool) bool {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	ct, err := s.db.Exec(ctx, `UPDATE app.games SET is_active = $2 WHERE id = $1`, id, active)
+	if err != nil {
+		panic(fmt.Errorf("SetGameActive: %w", err))
+	}
+	return ct.RowsAffected() > 0
+}
+
 func (s *PostgresStore) RecentGames(limit int) []Game {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	q := `SELECT g.id, g.played_at, g.title_id, t.name, g.participant_ids, g.winner_ids, g.notes
+	q := `SELECT g.id, g.played_at, g.title_id, t.name, g.participant_ids, g.winner_ids, g.notes, g.is_active
 		  FROM app.games g
 		  JOIN app.titles t ON t.id = g.title_id
 		 ORDER BY g.played_at DESC, g.id DESC`
-	var args []any
+	args := []any{}
 	if limit > 0 {
 		q += ` LIMIT $1`
 		args = append(args, limit)
@@ -78,10 +90,10 @@ func (s *PostgresStore) RecentGames(limit int) []Game {
 	}
 	defer rows.Close()
 
-	out := make([]Game, 0, maximum(0, limit))
+	out := make([]Game, 0, max(0, limit))
 	for rows.Next() {
 		var g Game
-		if err := rows.Scan(&g.ID, &g.PlayedAt, &g.TitleID, &g.Title, &g.ParticipantIDs, &g.WinnerIDs, &g.Notes); err != nil {
+		if err := rows.Scan(&g.ID, &g.PlayedAt, &g.TitleID, &g.Title, &g.ParticipantIDs, &g.WinnerIDs, &g.Notes, &g.IsActive); err != nil {
 			panic(fmt.Errorf("RecentGames scan: %w", err))
 		}
 		out = append(out, g)
@@ -100,16 +112,16 @@ func (s *PostgresStore) ListPlayers() []Player {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	rows, err := s.db.Query(ctx, `SELECT id, name FROM app.players ORDER BY name`)
+	rows, err := s.db.Query(ctx, `SELECT id, name, is_active FROM app.players ORDER BY name`)
 	if err != nil {
 		panic(fmt.Errorf("ListPlayers: %w", err))
 	}
 	defer rows.Close()
 
-	var out []Player
+	out := []Player{}
 	for rows.Next() {
 		var p Player
-		if err := rows.Scan(&p.ID, &p.Name); err != nil {
+		if err := rows.Scan(&p.ID, &p.Name, &p.IsActive); err != nil {
 			panic(fmt.Errorf("ListPlayers scan: %w", err))
 		}
 		out = append(out, p)
@@ -125,7 +137,7 @@ func (s *PostgresStore) AddPlayer(name string) Player {
 	defer cancel()
 
 	var p Player
-	err := s.db.QueryRow(ctx, `INSERT INTO app.players (name) VALUES ($1) RETURNING id, name`, name).Scan(&p.ID, &p.Name)
+	err := s.db.QueryRow(ctx, `INSERT INTO app.players (name) VALUES ($1) RETURNING id, name, is_active`, name).Scan(&p.ID, &p.Name, &p.IsActive)
 	if err != nil {
 		panic(fmt.Errorf("AddPlayer: %w", err))
 	}
@@ -143,11 +155,22 @@ func (s *PostgresStore) UpdatePlayer(id int64, name string) bool {
 	return ct.RowsAffected() > 0
 }
 
+func (s *PostgresStore) SetPlayerActive(id int64, active bool) bool {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	ct, err := s.db.Exec(ctx, `UPDATE app.players SET is_active = $2 WHERE id = $1`, id, active)
+	if err != nil {
+		panic(fmt.Errorf("SetPlayerActive: %w", err))
+	}
+	return ct.RowsAffected() > 0
+}
+
 func (s *PostgresStore) DeletePlayer(id int64) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	// Prevent deleting a player referenced by any game.
+	// Prevent deleting a player that is referenced by any game.
 	var exists bool
 	err := s.db.QueryRow(ctx,
 		`SELECT EXISTS (
@@ -177,16 +200,16 @@ func (s *PostgresStore) ListTitles() []Title {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	rows, err := s.db.Query(ctx, `SELECT id, name FROM app.titles ORDER BY name`)
+	rows, err := s.db.Query(ctx, `SELECT id, name, is_active FROM app.titles ORDER BY name`)
 	if err != nil {
 		panic(fmt.Errorf("ListTitles: %w", err))
 	}
 	defer rows.Close()
 
-	var out []Title
+	out := []Title{}
 	for rows.Next() {
 		var t Title
-		if err := rows.Scan(&t.ID, &t.Name); err != nil {
+		if err := rows.Scan(&t.ID, &t.Name, &t.IsActive); err != nil {
 			panic(fmt.Errorf("ListTitles scan: %w", err))
 		}
 		out = append(out, t)
@@ -202,7 +225,7 @@ func (s *PostgresStore) AddTitle(name string) Title {
 	defer cancel()
 
 	var t Title
-	err := s.db.QueryRow(ctx, `INSERT INTO app.titles (name) VALUES ($1) RETURNING id, name`, name).Scan(&t.ID, &t.Name)
+	err := s.db.QueryRow(ctx, `INSERT INTO app.titles (name) VALUES ($1) RETURNING id, name, is_active`, name).Scan(&t.ID, &t.Name, &t.IsActive)
 	if err != nil {
 		panic(fmt.Errorf("AddTitle: %w", err))
 	}
@@ -216,6 +239,17 @@ func (s *PostgresStore) UpdateTitle(id int64, name string) bool {
 	ct, err := s.db.Exec(ctx, `UPDATE app.titles SET name=$2 WHERE id=$1`, id, name)
 	if err != nil {
 		panic(fmt.Errorf("UpdateTitle: %w", err))
+	}
+	return ct.RowsAffected() > 0
+}
+
+func (s *PostgresStore) SetTitleActive(id int64, active bool) bool {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	ct, err := s.db.Exec(ctx, `UPDATE app.titles SET is_active = $2 WHERE id = $1`, id, active)
+	if err != nil {
+		panic(fmt.Errorf("SetTitleActive: %w", err))
 	}
 	return ct.RowsAffected() > 0
 }
@@ -277,11 +311,4 @@ func (s *PostgresStore) SetTiebreaker(tb Tiebreaker) {
 	if err != nil {
 		panic(fmt.Errorf("SetTiebreaker upsert: %w", err))
 	}
-}
-
-func maximum(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
 }

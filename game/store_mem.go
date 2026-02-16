@@ -52,6 +52,9 @@ func (s *MemoryStore) AddGame(g Game) Game {
 
 	g.ID = s.nextGameID
 	s.nextGameID++
+	if !g.IsActive {
+		g.IsActive = true
+	}
 	s.games = append(s.games, g)
 	return g
 }
@@ -63,6 +66,19 @@ func (s *MemoryStore) DeleteGame(id int64) bool {
 	for i := range s.games {
 		if s.games[i].ID == id {
 			s.games = append(s.games[:i], s.games[i+1:]...)
+			return true
+		}
+	}
+	return false
+}
+
+func (s *MemoryStore) SetGameActive(id int64, active bool) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for i := range s.games {
+		if s.games[i].ID == id {
+			s.games[i].IsActive = active
 			return true
 		}
 	}
@@ -107,7 +123,7 @@ func (s *MemoryStore) AddPlayer(name string) Player {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	p := Player{ID: s.nextPlayerID, Name: name}
+	p := Player{ID: s.nextPlayerID, Name: name, IsActive: true}
 	s.nextPlayerID++
 	s.players = append(s.players, p)
 	return p
@@ -120,6 +136,19 @@ func (s *MemoryStore) UpdatePlayer(id int64, name string) bool {
 	for i := range s.players {
 		if s.players[i].ID == id {
 			s.players[i].Name = name
+			return true
+		}
+	}
+	return false
+}
+
+func (s *MemoryStore) SetPlayerActive(id int64, active bool) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for i := range s.players {
+		if s.players[i].ID == id {
+			s.players[i].IsActive = active
 			return true
 		}
 	}
@@ -157,7 +186,7 @@ func (s *MemoryStore) AddTitle(name string) Title {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	t := Title{ID: s.nextTitleID, Name: name}
+	t := Title{ID: s.nextTitleID, Name: name, IsActive: true}
 	s.nextTitleID++
 	s.titles = append(s.titles, t)
 	return t
@@ -170,6 +199,19 @@ func (s *MemoryStore) UpdateTitle(id int64, name string) bool {
 	for i := range s.titles {
 		if s.titles[i].ID == id {
 			s.titles[i].Name = name
+			return true
+		}
+	}
+	return false
+}
+
+func (s *MemoryStore) SetTitleActive(id int64, active bool) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for i := range s.titles {
+		if s.titles[i].ID == id {
+			s.titles[i].IsActive = active
 			return true
 		}
 	}
