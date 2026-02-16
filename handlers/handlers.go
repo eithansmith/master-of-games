@@ -61,9 +61,14 @@ func (s *Server) newHomeVM(showAllGames bool) HomeVM {
 }
 
 func (s *Server) defaultHomeForm(_ []game.Player, _ []game.Title) HomeForm {
+	loc, err := time.LoadLocation("America/Chicago")
+	if err != nil {
+		loc = time.UTC
+	}
+
 	return HomeForm{
 		TitleID:      0,
-		PlayedAt:     time.Now().Format("2006-01-02T15:04"),
+		PlayedAt:     time.Now().In(loc).Format("2006-01-02T15:04"),
 		Participants: map[int64]bool{},
 		Winners:      map[int64]bool{},
 		Notes:        "",
