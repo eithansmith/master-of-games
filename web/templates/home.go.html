@@ -98,7 +98,7 @@
                                 <div class="li-sub">Notes: {{ .Notes }}</div>
                             {{ end }}
                         </div>
-                        <form hx-post="/games/delete" hx-target="#main" hx-select="#main" hx-swap="outerHTML"
+                        <form hx-post="/games/delete" hx-target="#main" hx-swap="innerHTML"
                               method="post">
                             <input type="hidden" name="id" value="{{ .ID }}">
                             <button class="btn danger" type="submit" title="Delete">Delete</button>

@@ -65,6 +65,7 @@ VALUES ('Bang'),
 -- games
 CREATE TABLE IF NOT EXISTS app.games
 (
+    id              BIGSERIAL PRIMARY KEY,
     played_at       timestamp with time zone                        not null,
     created_at      timestamp with time zone default now()          not null,
     title_id        bigint                                          not null
