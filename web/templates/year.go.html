@@ -18,16 +18,25 @@
 
             {{ if .WinnerID }}
                 <div class="trophy">
-                    🏆 {{ index .PlayerNames (derefInt64 .WinnerID) }}
+                    {{$p := index .PlayerMap (derefInt64 .WinnerID) }}
+                    🏆 {{$p.Name}}
+                    {{ range .Stats }}
+                        {{if eq .PlayerID $p.ID}}
+                            <div class="li-sub">
+                                Attendance: {{ .Attendance }} |
+                                Played: {{ .GamesPlayed }} |
+                                Wins: {{ .Wins }} |
+                                Win rate: {{ printf "%.3f" .WinRate }}
+                            </div>
+                        {{end}}
+                    {{end}}
                 </div>
             {{ else if gt (len .TopIDs) 1 }}
                 <div class="trophy">🤝 Tie (unresolved)</div>
 
                 <p class="hint" style="margin-top: 8px;">
                     Tied leaders:
-                    {{ range $i, $pid := .TopIDs }}
-                        {{ if $i }}, {{ end }}{{ index $.Players $pid }}
-                    {{ end }}
+                    {{ range $i, $pid := .TopIDs }}{{ if $i }}, {{ end }}{{range $.Players}}{{if eq .ID $pid}}{{.Name}}{{end}}{{end}}{{ end }}
                 </p>
 
                 <form hx-post="/years/{{ .Year }}/tiebreak"
@@ -40,8 +49,11 @@
                         Resolve by Game of Chance — choose winner:
                         <select name="winner_id" required>
                             <option value="">Select...</option>
-                            {{ range .TopIDs }}
-                                <option value="{{ . }}">{{ index $.Players . }}</option>
+                            {{ range $i, $pid := .TopIDs }}
+                                {{range $.Players}}
+                                    {{if eq .ID $pid}}
+                                        <option value="{{ .ID }}">{{.Name}}</option>{{end}}
+                                {{end}}
                             {{ end }}
                         </select>
                     </label>
@@ -67,7 +79,7 @@
                 <div class="list-item">
                     <div class="li-main">
                         <div class="li-title">
-                            {{ $p := index $.Players .PlayerID }}
+                            {{ $p := index $.PlayerMap .PlayerID }}
                             {{$p.Name}}
                             {{ if .Qualified }} <span class="pill">Qualified</span>{{ end }}
                         </div>

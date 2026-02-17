@@ -156,6 +156,7 @@ func (s *PostgresStore) GamesByYear(year int) ([]Game, error) {
 		if err := rows.Scan(&g.ID, &g.PlayedAt, &g.TitleID, &g.Title, &g.ParticipantIDs, &g.WinnerIDs, &g.Notes, &g.IsActive); err != nil {
 			return nil, fmt.Errorf("GamesByYear scan: %w", err)
 		}
+		out = append(out, g)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("GamesByYear rows: %w", err)

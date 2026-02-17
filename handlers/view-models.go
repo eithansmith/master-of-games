@@ -48,12 +48,12 @@ type WeekVM struct {
 	NextWeek int
 	HasNext  bool
 
-	Players     []game.Player
-	PlayerNames map[int64]string
+	Players   []game.Player
+	PlayerMap map[int64]game.Player
 
 	TotalGames int
-	Wins       map[int64]int
 	TotalWins  int
+	Wins       map[int64]int
 
 	TopIDs        []int64
 	WinnerID      *int64
@@ -71,8 +71,8 @@ type YearVM struct {
 
 	Year int
 
-	Players     []game.Player
-	PlayerNames map[int64]string
+	Players   []game.Player
+	PlayerMap map[int64]game.Player
 
 	Stats []game.PlayerYearStats
 

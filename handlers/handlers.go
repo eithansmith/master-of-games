@@ -314,9 +314,9 @@ func (s *Server) renderWeek(w http.ResponseWriter, year, week int, formErr strin
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
-	pMap := make(map[int64]string, len(allPlayers))
+	pMap := make(map[int64]game.Player, len(allPlayers))
 	for _, p := range allPlayers {
-		pMap[p.ID] = p.Name
+		pMap[p.ID] = p
 	}
 
 	var years []int
@@ -357,7 +357,7 @@ func (s *Server) renderWeek(w http.ResponseWriter, year, week int, formErr strin
 		NextWeek:      nw,
 		HasNext:       true,
 		Players:       allPlayers,
-		PlayerNames:   pMap,
+		PlayerMap:     pMap,
 		TotalGames:    ws.TotalGames,
 		Wins:          ws.Wins,
 		TotalWins:     ws.TotalWins,
@@ -444,9 +444,9 @@ func (s *Server) renderYear(w http.ResponseWriter, year int, formErr string) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
-	pMap := make(map[int64]string, len(allPlayers))
+	pMap := make(map[int64]game.Player, len(allPlayers))
 	for _, p := range allPlayers {
-		pMap[p.ID] = p.Name
+		pMap[p.ID] = p
 	}
 
 	gamesByYear, err := s.store.GamesByYear(year)
@@ -464,7 +464,7 @@ func (s *Server) renderYear(w http.ResponseWriter, year int, formErr string) {
 		YearNow:       time.Now().Year(),
 		Year:          year,
 		Players:       allPlayers,
-		PlayerNames:   pMap,
+		PlayerMap:     pMap,
 		Stats:         ys.Stats,
 		Qualifiers:    ys.Qualifiers,
 		TopIDs:        ys.TopIDs,
