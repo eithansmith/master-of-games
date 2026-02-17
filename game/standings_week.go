@@ -12,6 +12,7 @@ type WeekStandings struct {
 
 	TotalGames int
 	Wins       map[int64]int // playerID -> wins
+	TotalWins  int
 
 	TopIDs        []int64 // tied leaders by wins (could be 1)
 	WinnerID      *int64
@@ -43,14 +44,14 @@ func ComputeWeekStandings(
 		}
 	}
 
-	maxWins := 0
+	ws.TotalWins = 0
 	for _, w := range ws.Wins {
-		if w > maxWins {
-			maxWins = w
+		if w > ws.TotalWins {
+			ws.TotalWins = w
 		}
 	}
 	for pid, w := range ws.Wins {
-		if w == maxWins && maxWins > 0 {
+		if w == ws.TotalWins && ws.TotalWins > 0 {
 			ws.TopIDs = append(ws.TopIDs, pid)
 		}
 	}

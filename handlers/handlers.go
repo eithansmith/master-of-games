@@ -360,6 +360,7 @@ func (s *Server) renderWeek(w http.ResponseWriter, year, week int, formErr strin
 		PlayerNames:   pMap,
 		TotalGames:    ws.TotalGames,
 		Wins:          ws.Wins,
+		TotalWins:     ws.TotalWins,
 		TopIDs:        ws.TopIDs,
 		WinnerID:      ws.WinnerID,
 		TieUnresolved: ws.TieUnresolved,

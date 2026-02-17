@@ -53,6 +53,7 @@ type WeekVM struct {
 
 	TotalGames int
 	Wins       map[int64]int
+	TotalWins  int
 
 	TopIDs        []int64
 	WinnerID      *int64

@@ -83,11 +83,11 @@
 
                 {{ if .WinnerID }}
                     <div class="trophy">
-                        🏆 {{ index .PlayerNames (derefInt64 .WinnerID) }}
+                        🏆 {{ index .PlayerNames (derefInt64 .WinnerID) }} ({{.TotalWins}} wins)
                     </div>
                 {{ else }}
                     <div class="trophy">
-                        🤝 Tie (unresolved)
+                        🤝 Tie (unresolved, {{.TotalWins}} wins)
                     </div>
 
                     <p class="hint" style="margin-top: 8px;">
@@ -108,7 +108,7 @@
                                 {{ range $i, $pid := .TopIDs }}
                                     {{range $.Players}}
                                         {{if eq .ID $pid}}
-                                        <option value="{{ .ID }}">{{.Name}}</option>{{end}}
+                                            <option value="{{ .ID }}">{{.Name}}</option>{{end}}
                                     {{end}}
                                 {{ end }}
                             </select>
