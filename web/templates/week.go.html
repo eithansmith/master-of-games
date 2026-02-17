@@ -92,9 +92,7 @@
 
                     <p class="hint" style="margin-top: 8px;">
                         Tied leaders:
-                        {{ range $i, $pid := .TopIDs }}
-                            {{ if $i }}, {{ end }}{{ index $.Players $pid }}
-                        {{ end }}
+                        {{ range $i, $pid := .TopIDs }}{{ if $i }}, {{ end }}{{range $.Players}}{{if eq .ID $pid}}{{.Name}}{{end}}{{end}}{{ end }}
                     </p>
 
                     <form hx-post="/weeks/{{ .Year }}/{{ .Week }}/tiebreak"
@@ -107,8 +105,11 @@
                             Resolve by Game of Chance — choose winner:
                             <select name="winner_id" required>
                                 <option value="">Select...</option>
-                                {{ range .TopIDs }}
-                                    <option value="{{ . }}">{{ index $.Players . }}</option>
+                                {{ range $i, $pid := .TopIDs }}
+                                    {{range $.Players}}
+                                        {{if eq .ID $pid}}
+                                        <option value="{{ .ID }}">{{.Name}}</option>{{end}}
+                                    {{end}}
                                 {{ end }}
                             </select>
                         </label>
