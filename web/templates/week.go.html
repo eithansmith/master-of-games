@@ -82,8 +82,18 @@
                 <div class="label">This week’s trophy</div>
 
                 {{ if .WinnerID }}
+                    {{$winnerID := .WinnerID}}
                     <div class="trophy">
-                        🏆 {{ index .PlayerNames (derefInt64 .WinnerID) }} ({{.TotalWins}} wins)
+                        {{ range .Players }}
+                            {{ if eq .ID (derefInt64 $winnerID) }}
+                                <div class="li-title">🏆 {{ .Name }}</div>
+                                <div class="li-sub">
+                                    Wins:
+                                    {{ $w := index $.Wins .ID }}
+                                    {{ if $w }}{{ $w }}{{ else }}0{{ end }}
+                                </div>
+                            {{end}}
+                        {{end}}
                     </div>
                 {{ else }}
                     <div class="trophy">
