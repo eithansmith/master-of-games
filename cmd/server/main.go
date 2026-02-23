@@ -36,7 +36,11 @@ func main() {
 	s := handlers.New(store, pool, meta)
 
 	mux := http.NewServeMux()
-	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("web/static"))))
+
+	fs := http.StripPrefix("/static/", http.FileServer(http.Dir("web/static")))
+	mux.Handle("GET /static/", fs)
+	mux.Handle("HEAD /static/", fs)
+
 	s.RegisterRoutes(mux)
 
 	srv := &http.Server{

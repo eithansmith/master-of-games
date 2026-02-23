@@ -40,25 +40,39 @@ func New(store Store, db Pinger, meta Meta) *Server {
 
 // RegisterRoutes attaches all application routes to the provided mux.
 func (s *Server) RegisterRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("/", s.handleHome)
-	mux.HandleFunc("/games", s.handleAddGame)           // POST
-	mux.HandleFunc("/games/delete", s.handleDeleteGame) // POST (legacy alias)
-	mux.HandleFunc("/games/toggle", s.handleGameToggle) // POST
-	mux.HandleFunc("/weeks/current", s.handleWeekCurrent)
-	mux.HandleFunc("/weeks/", s.handleWeek) // GET + POST tiebreak
-	mux.HandleFunc("/years/", s.handleYear) // GET + POST tiebreak
+	// Home
+	mux.HandleFunc("GET /", s.handleHome)
+
+	// Games
+	mux.HandleFunc("POST /games", s.handleAddGame)
+	// Toggle/retire a game (uses path params; HTMX posts here)
+	mux.HandleFunc("POST /games/{id}/toggle", s.handleGameToggle)
+	// Optional: hard-delete/retire endpoint if you want a distinct button later
+	mux.HandleFunc("POST /games/{id}/delete", s.handleDeleteGame)
+
+	// Weeks
+	mux.HandleFunc("GET /weeks/current", s.handleWeekCurrent)
+	mux.HandleFunc("GET /weeks/{year}/{week}", s.handleWeek)
+	mux.HandleFunc("POST /weeks/{year}/{week}/tiebreak", s.handleWeekTiebreak)
+
+	// Years
+	mux.HandleFunc("GET /years/{year}", s.handleYear)
+	mux.HandleFunc("POST /years/{year}/tiebreak", s.handleYearTiebreak)
 
 	// Admin-ish lists (simple CRUD)
-	mux.HandleFunc("/players", s.handlePlayers)             // GET + POST
-	mux.HandleFunc("/players/update", s.handlePlayerUpdate) // POST
-	mux.HandleFunc("/players/delete", s.handlePlayerDelete) // POST (legacy alias)
-	mux.HandleFunc("/players/toggle", s.handlePlayerToggle) // POST
+	mux.HandleFunc("GET /players", s.handlePlayers)
+	mux.HandleFunc("POST /players", s.handlePlayersPost)
+	mux.HandleFunc("POST /players/{id}/update", s.handlePlayerUpdate)
+	mux.HandleFunc("POST /players/{id}/toggle", s.handlePlayerToggle)
+	mux.HandleFunc("POST /players/{id}/delete", s.handlePlayerDelete)
 
-	mux.HandleFunc("/titles", s.handleTitles)             // GET + POST
-	mux.HandleFunc("/titles/update", s.handleTitleUpdate) // POST
-	mux.HandleFunc("/titles/delete", s.handleTitleDelete) // POST (legacy alias)
-	mux.HandleFunc("/titles/toggle", s.handleTitleToggle) // POST
+	mux.HandleFunc("GET /titles", s.handleTitles)
+	mux.HandleFunc("POST /titles", s.handleTitlesPost)
+	mux.HandleFunc("POST /titles/{id}/update", s.handleTitleUpdate)
+	mux.HandleFunc("POST /titles/{id}/toggle", s.handleTitleToggle)
+	mux.HandleFunc("POST /titles/{id}/delete", s.handleTitleDelete)
 
-	mux.HandleFunc("/healthz", s.handleHealthz)
-	mux.HandleFunc("/readyz", s.handleReadyz)
+	// Health
+	mux.HandleFunc("GET /healthz", s.handleHealthz)
+	mux.HandleFunc("GET /readyz", s.handleReadyz)
 }

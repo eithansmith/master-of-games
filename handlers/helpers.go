@@ -1,9 +1,28 @@
 package handlers
 
 import (
+	"net/http"
 	"strconv"
 	"time"
 )
+
+// pathInt reads an integer path parameter from Go's ServeMux patterns.
+func pathInt(r *http.Request, key string) (int, error) {
+	v := r.PathValue(key)
+	if v == "" {
+		return 0, strconv.ErrSyntax
+	}
+	return strconv.Atoi(v)
+}
+
+// pathInt64 reads an int64 path parameter from Go's ServeMux patterns.
+func pathInt64(r *http.Request, key string) (int64, error) {
+	v := r.PathValue(key)
+	if v == "" {
+		return 0, strconv.ErrSyntax
+	}
+	return strconv.ParseInt(v, 10, 64)
+}
 
 // parseInt64Slice converts string values (typically checkbox IDs) into an int64 slice.
 func parseInt64Slice(vals []string) []int64 {

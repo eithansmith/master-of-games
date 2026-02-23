@@ -100,8 +100,7 @@
                                 <div class="li-sub">Notes: {{ .Notes }}</div>
                             {{ end }}
                         </div>
-                        <form hx-post="/games/toggle" hx-target="#main" hx-swap="innerHTML" method="post">
-                            <input type="hidden" name="id" value="{{ .ID }}">
+                        <form hx-post="/games/{{ .ID }}/toggle" hx-target="#main" hx-swap="innerHTML" method="post">
                             {{ if .IsActive }}<input type="hidden" name="active" value="0">
                             <button class="btn danger" type="submit" title="Retire">Retire</button>{{ else }}
                                 <input type="hidden" name="active" value="1">

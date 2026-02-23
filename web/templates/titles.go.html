@@ -27,9 +27,8 @@
                         <div class="li-main">
                             {{ if not .IsActive }}
                             <div class="pill">Inactive</div>{{ end }}
-                            <form method="post" action="/titles/update" class="row"
+                            <form method="post" action="/titles/{{ .ID }}/update" class="row"
                                   style="gap:10px; align-items:end; margin:0;">
-                                <input type="hidden" name="id" value="{{ .ID }}">
                                 <label style="flex:1; margin:0;">
                                     Name
                                     <input type="text" name="name" value="{{ .Name }}" required>
@@ -38,8 +37,7 @@
                             </form>
                         </div>
 
-                        <form method="post" action="/titles/toggle" style="margin:0;">
-                            <input type="hidden" name="id" value="{{ .ID }}">
+                        <form method="post" action="/titles/{{ .ID }}/toggle" style="margin:0;">
                             {{ if .IsActive }}
                                 <input type="hidden" name="active" value="0">
                                 <button class="btn danger" type="submit" title="Deactivate">Deactivate</button>
