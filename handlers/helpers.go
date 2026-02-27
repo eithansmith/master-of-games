@@ -1,18 +1,25 @@
 package handlers
 
 import (
+	"fmt"
+	"math"
 	"net/http"
+	"sort"
 	"strconv"
 	"time"
 )
 
 // pathInt reads an integer path parameter from Go's ServeMux patterns.
-func pathInt(r *http.Request, key string) (int, error) {
+func pathInt(r *http.Request, key string) (int, bool) {
 	v := r.PathValue(key)
 	if v == "" {
-		return 0, strconv.ErrSyntax
+		return 0, false
 	}
-	return strconv.Atoi(v)
+	n, err := strconv.Atoi(v)
+	if err != nil {
+		return 0, false
+	}
+	return n, true
 }
 
 // pathInt64 reads an int64 path parameter from Go's ServeMux patterns.
@@ -95,4 +102,65 @@ func nextISOWeek(year, week int) (int, int) {
 		return year, week + 1
 	}
 	return year + 1, 1
+}
+
+// Round up to a nice axis max (1,2,5 * 10^k style)
+func niceCeil(x float64) float64 {
+	if x <= 0 {
+		return 1
+	}
+	exp := math.Floor(math.Log10(x))
+	base := math.Pow(10, exp)
+	f := x / base
+
+	var nice float64
+	switch {
+	case f <= 1:
+		nice = 1
+	case f <= 2:
+		nice = 2
+	case f <= 5:
+		nice = 5
+	default:
+		nice = 10
+	}
+	return nice * base
+}
+
+func uniqueSortedInts(in []int) []int {
+	m := map[int]bool{}
+	for _, v := range in {
+		if v < 0 {
+			continue
+		}
+		m[v] = true
+	}
+	out := make([]int, 0, len(m))
+	for v := range m {
+		out = append(out, v)
+	}
+	sort.Ints(out)
+	return out
+}
+
+func seriesColor(i int) string {
+	// golden-angle-ish spacing to avoid clumping
+	hue := (i * 137) % 360
+	// looks good on a dark background
+	return fmt.Sprintf("hsl(%d 70%% 55%%)", hue)
+}
+
+func yTickStep(axisMax int) int {
+	switch {
+	case axisMax <= 10:
+		return 1
+	case axisMax <= 20:
+		return 2
+	case axisMax <= 50:
+		return 5
+	case axisMax <= 100:
+		return 10
+	default:
+		return 20
+	}
 }

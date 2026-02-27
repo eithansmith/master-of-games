@@ -1,8 +1,6 @@
 package game
 
-import (
-	"sort"
-)
+import "sort"
 
 type RaceMetric string
 
@@ -13,7 +11,7 @@ const (
 type RaceSeries struct {
 	PlayerID int64
 	Name     string
-	Values   []float64
+	Values   []float64 // aligned to Weeks
 }
 
 type YearRace struct {
@@ -22,112 +20,103 @@ type YearRace struct {
 	Series []RaceSeries
 }
 
-// ComputeYearRace builds cumulative weekly data for a given metric.
+// ComputeYearRace builds cumulative weekly data for the given year.
+// v1 supports metric=wins only, and filters to Top N by final value.
 func ComputeYearRace(
 	games []Game,
 	year int,
 	metric RaceMetric,
 	topN int,
-	players []Player, // pass active players so we have names
+	players []Player,
 ) YearRace {
-
-	// 1️⃣ Group games by week
+	// Group games by ISO week (only games in the target year)
 	byWeek := map[int][]Game{}
 	for _, g := range games {
 		if g.PlayedAt.Year() != year {
 			continue
 		}
-		_, week := g.PlayedAt.ISOWeek()
-		byWeek[week] = append(byWeek[week], g)
+		_, w := g.PlayedAt.ISOWeek()
+		byWeek[w] = append(byWeek[w], g)
 	}
 
-	// Collect sorted week list
+	// Sorted week list
 	var weeks []int
 	for w := range byWeek {
 		weeks = append(weeks, w)
 	}
 	sort.Ints(weeks)
 
-	// 2️⃣ Initialize cumulative stats
-	type stat struct {
-		Wins int
-	}
+	// init stats + series for active players (or all players if you prefer)
+	type stat struct{ wins int }
 	stats := map[int64]*stat{}
+	series := map[int64]*RaceSeries{}
 
-	// Initialize series for all players
-	seriesMap := map[int64]*RaceSeries{}
 	for _, p := range players {
+		if !p.IsActive {
+			continue
+		}
 		stats[p.ID] = &stat{}
-		seriesMap[p.ID] = &RaceSeries{
+		series[p.ID] = &RaceSeries{
 			PlayerID: p.ID,
 			Name:     p.Name,
-			Values:   []float64{},
+			Values:   make([]float64, 0, len(weeks)),
 		}
 	}
 
-	// 3️⃣ Walk week by week
-	for _, week := range weeks {
-		gamesThisWeek := byWeek[week]
-
-		for _, g := range gamesThisWeek {
+	// Walk weeks, accumulate, then snapshot
+	for _, w := range weeks {
+		for _, g := range byWeek[w] {
 			for _, winnerID := range g.WinnerIDs {
-				stats[winnerID].Wins++
+				if st, ok := stats[winnerID]; ok {
+					st.wins++
+				}
 			}
 		}
 
-		// Snapshot cumulative values
-		for _, p := range players {
+		for pid := range series {
 			switch metric {
 			case RaceMetricWins:
-				seriesMap[p.ID].Values = append(
-					seriesMap[p.ID].Values,
-					float64(stats[p.ID].Wins),
-				)
+				series[pid].Values = append(series[pid].Values, float64(stats[pid].wins))
+			default:
+				series[pid].Values = append(series[pid].Values, 0)
 			}
 		}
 	}
 
-	// 4️⃣ Determine topN players by final value
-	type finalScore struct {
-		PlayerID int64
-		Value    float64
+	// No data
+	if len(weeks) == 0 {
+		return YearRace{Year: year}
 	}
 
-	var finals []finalScore
-	for _, s := range seriesMap {
+	// Rank by final value and take top N
+	type final struct {
+		id    int64
+		score float64
+	}
+	finals := make([]final, 0, len(series))
+	for _, s := range series {
 		if len(s.Values) == 0 {
 			continue
 		}
-		finals = append(finals, finalScore{
-			PlayerID: s.PlayerID,
-			Value:    s.Values[len(s.Values)-1],
-		})
+		finals = append(finals, final{id: s.PlayerID, score: s.Values[len(s.Values)-1]})
 	}
+	sort.Slice(finals, func(i, j int) bool { return finals[i].score > finals[j].score })
 
-	sort.Slice(finals, func(i, j int) bool {
-		return finals[i].Value > finals[j].Value
-	})
-
+	if topN <= 0 {
+		topN = 5
+	}
 	if topN > len(finals) {
 		topN = len(finals)
 	}
 
-	topSet := map[int64]bool{}
+	out := make([]RaceSeries, 0, topN)
 	for i := 0; i < topN; i++ {
-		topSet[finals[i].PlayerID] = true
-	}
-
-	// 5️⃣ Build final series slice
-	var finalSeries []RaceSeries
-	for _, s := range seriesMap {
-		if topSet[s.PlayerID] {
-			finalSeries = append(finalSeries, *s)
-		}
+		out = append(out, *series[finals[i].id])
 	}
 
 	return YearRace{
 		Year:   year,
 		Weeks:  weeks,
-		Series: finalSeries,
+		Series: out,
 	}
 }

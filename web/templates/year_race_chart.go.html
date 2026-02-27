@@ -1,0 +1,69 @@
+{{ define "year_race_chart" }}
+
+    {{ if .Weeks }}
+
+        <svg viewBox="{{ .SvgView }}" style="width:100%; max-width:980px; display:block;">
+            <!-- Plot area background grid -->
+            {{ $left := .Pad }}
+            {{ $top := .Pad }}
+            {{ $right := sub .Width .Pad }}
+            {{ $bottom := sub .Height .Pad }}
+
+            <!-- Axes -->
+            <path d="M {{ $left }} {{ $top }} L {{ $left }} {{ $bottom }} L {{ $right }} {{ $bottom }}"
+                  fill="none" stroke="currentColor" opacity="0.35"/>
+
+            <!-- Y gridlines + labels -->
+            {{ range .YTicks }}
+                <path d="M {{ $left }} {{ sub .Y 4 }} L {{ $right }} {{ sub .Y 4 }}"
+                      fill="none" stroke="currentColor" opacity="0.10"/>
+                <text x="{{ .X }}" y="{{ .Y }}" text-anchor="end"
+                      fill="currentColor" opacity="0.55" font-size="12">
+                    {{ .Label }}
+                </text>
+            {{ end }}
+
+            <!-- X ticks + labels -->
+            {{ range .XTicks }}
+                <path d="M {{ .X }} {{ $bottom }} L {{ .X }} {{ add $bottom 6 }}"
+                      fill="none" stroke="currentColor" opacity="0.25"/>
+                <text x="{{ .X }}" y="{{ .Y }}" text-anchor="middle"
+                      fill="currentColor" opacity="0.55" font-size="12">
+                    {{ .Label }}
+                </text>
+            {{ end }}
+
+            <!-- Series lines -->
+            {{ range $i, $s := .Series }}
+                <path d="{{ $s.Path }}" fill="none" stroke="{{ $s.Color }}"
+                      stroke-width="3" opacity="0.90"/>
+            {{ end }}
+
+            <!-- Series markers -->
+            {{ range $i, $s := .Series }}
+                {{ range $p := $s.Points }}
+                    <circle cx="{{ $p.X }}" cy="{{ $p.Y }}" r="3.5" fill="{{ $s.Color }}" opacity="0.95">
+                        <title>{{ $p.Title }}</title>
+                    </circle>
+                {{ end }}
+            {{ end }}
+
+        </svg>
+
+        <!-- Legend -->
+        <ul class="hint" style="margin-top:12px; padding-left: 18px;">
+            {{ range .Series }}
+                <li style="display:flex; align-items:center; gap:8px;">
+                    <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background: {{ .Color }};"></span>
+                    {{ .Name }}
+                </li>
+            {{ end }}
+        </ul>
+
+    {{ else }}
+
+        <div class="hint">No games found for this year yet.</div>
+
+    {{ end }}
+
+{{ end }}

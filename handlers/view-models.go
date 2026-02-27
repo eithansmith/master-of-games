@@ -1,6 +1,10 @@
 package handlers
 
-import "github.com/eithansmith/master-of-games/game"
+import (
+	"html/template"
+
+	"github.com/eithansmith/master-of-games/game"
+)
 
 type HomeForm struct {
 	TitleID      int64
@@ -84,6 +88,40 @@ type YearVM struct {
 	FormError string
 }
 
+type yearRaceChartVM struct {
+	SvgView string
+	Width   float64
+	Height  float64
+	Pad     float64
+
+	Weeks []int
+	Max   float64
+
+	YTicks []yearRaceTick
+	XTicks []yearRaceTick
+
+	Series []yearRaceSeriesVM
+}
+
+type yearRaceTick struct {
+	X     float64
+	Y     float64
+	Label string
+}
+
+type yearRaceSeriesVM struct {
+	Name  string
+	Color template.CSS
+	Path  string // SVG path "d"
+
+	Points []yearRacePointVM
+}
+
+type yearRacePointVM struct {
+	X     float64
+	Y     float64
+	Title string // tooltip
+}
 type PlayersVM struct {
 	Title     string
 	Version   string

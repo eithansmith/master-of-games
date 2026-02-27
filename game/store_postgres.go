@@ -103,7 +103,7 @@ func (s *PostgresStore) RecentGames(limit int) ([]Game, error) {
 	}
 	return out, nil
 }
-func (s *PostgresStore) GamesByWeek(year, week int) ([]Game, error) {
+func (s *PostgresStore) GetWeek(year, week int) ([]Game, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -115,7 +115,7 @@ func (s *PostgresStore) GamesByWeek(year, week int) ([]Game, error) {
 
 	rows, err := s.db.Query(ctx, q, year, week)
 	if err != nil {
-		return nil, fmt.Errorf("GamesByWeek query: %w", err)
+		return nil, fmt.Errorf("GetWeek query: %w", err)
 	}
 	defer rows.Close()
 
@@ -123,18 +123,18 @@ func (s *PostgresStore) GamesByWeek(year, week int) ([]Game, error) {
 	for rows.Next() {
 		var g Game
 		if err := rows.Scan(&g.ID, &g.PlayedAt, &g.TitleID, &g.Title, &g.ParticipantIDs, &g.WinnerIDs, &g.Notes, &g.IsActive); err != nil {
-			return nil, fmt.Errorf("GamesByWeek scan: %w", err)
+			return nil, fmt.Errorf("GetWeek scan: %w", err)
 		}
 		out = append(out, g)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("GamesByWeek rows: %w", err)
+		return nil, fmt.Errorf("GetWeek rows: %w", err)
 	}
 
 	return out, nil
 }
 
-func (s *PostgresStore) GamesByYear(year int) ([]Game, error) {
+func (s *PostgresStore) GetYear(year int) ([]Game, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -146,7 +146,7 @@ func (s *PostgresStore) GamesByYear(year int) ([]Game, error) {
 
 	rows, err := s.db.Query(ctx, q, year)
 	if err != nil {
-		return nil, fmt.Errorf("GamesByYear query: %w", err)
+		return nil, fmt.Errorf("GetYear query: %w", err)
 	}
 	defer rows.Close()
 
@@ -154,12 +154,12 @@ func (s *PostgresStore) GamesByYear(year int) ([]Game, error) {
 	for rows.Next() {
 		var g Game
 		if err := rows.Scan(&g.ID, &g.PlayedAt, &g.TitleID, &g.Title, &g.ParticipantIDs, &g.WinnerIDs, &g.Notes, &g.IsActive); err != nil {
-			return nil, fmt.Errorf("GamesByYear scan: %w", err)
+			return nil, fmt.Errorf("GetYear scan: %w", err)
 		}
 		out = append(out, g)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("GamesByYear rows: %w", err)
+		return nil, fmt.Errorf("GetYear rows: %w", err)
 	}
 
 	return out, nil

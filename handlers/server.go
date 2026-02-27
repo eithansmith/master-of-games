@@ -22,12 +22,14 @@ type Server struct {
 // New constructs a Server with default template paths.
 func New(store Store, db Pinger, meta Meta) *Server {
 	r := NewRenderer(RendererConfig{
-		Base:    "web/templates/base.go.html",
-		Home:    "web/templates/home.go.html",
-		Week:    "web/templates/week.go.html",
-		Year:    "web/templates/year.go.html",
-		Players: "web/templates/players.go.html",
-		Titles:  "web/templates/titles.go.html",
+		Base:          "web/templates/base.go.html",
+		Home:          "web/templates/home.go.html",
+		Week:          "web/templates/week.go.html",
+		Year:          "web/templates/year.go.html",
+		YearRace:      "web/templates/year_race.go.html",
+		YearRaceChart: "web/templates/year_race_chart.go.html",
+		Players:       "web/templates/players.go.html",
+		Titles:        "web/templates/titles.go.html",
 	})
 
 	return &Server{
@@ -58,6 +60,10 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	// Years
 	mux.HandleFunc("GET /years/{year}", s.handleYear)
 	mux.HandleFunc("POST /years/{year}/tiebreak", s.handleYearTiebreak)
+
+	// Race charts
+	mux.HandleFunc("GET /years/{year}/race", s.handleYearRace)
+	mux.HandleFunc("GET /years/{year}/race/chart", s.handleYearRaceChart)
 
 	// Admin-ish lists (simple CRUD)
 	mux.HandleFunc("GET /players", s.handlePlayers)

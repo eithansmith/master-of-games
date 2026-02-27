@@ -16,8 +16,9 @@ type Store interface {
 	DeleteGame(id int64) error
 	SetGameActive(id int64, active bool) error
 	RecentGames(limit int) ([]game.Game, error)
-	GamesByWeek(year, week int) ([]game.Game, error)
-	GamesByYear(year int) ([]game.Game, error)
+
+	GetWeek(year, week int) ([]game.Game, error)
+	GetYear(year int) ([]game.Game, error)
 
 	// players
 	ListPlayers() ([]game.Player, error)

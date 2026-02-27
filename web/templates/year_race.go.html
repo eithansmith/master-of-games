@@ -1,0 +1,19 @@
+{{ define "year_race" }}
+    {{ template "base" . }}
+{{ end }}
+
+{{ define "main" }}
+    <section class="card">
+        <div class="row" style="justify-content:space-between; align-items:center;">
+            <h1>{{ .Year }} Race</h1>
+            <a class="btn secondary" href="/years/{{ .Year }}">Back to Year</a>
+        </div>
+
+        <div id="race-chart"
+             hx-get="/years/{{ .Year }}/race/chart"
+             hx-trigger="load"
+             hx-swap="innerHTML">
+            <div class="hint">Loading chart…</div>
+        </div>
+    </section>
+{{ end }}

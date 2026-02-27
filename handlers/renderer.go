@@ -7,25 +7,31 @@ import (
 )
 
 type Renderer struct {
-	home    *template.Template
-	week    *template.Template
-	year    *template.Template
-	players *template.Template
-	titles  *template.Template
+	home          *template.Template
+	week          *template.Template
+	year          *template.Template
+	yearRace      *template.Template
+	yearRaceChart *template.Template
+	players       *template.Template
+	titles        *template.Template
 }
 
 // RendererConfig centralizes template paths.
 type RendererConfig struct {
-	Base    string
-	Home    string
-	Week    string
-	Year    string
-	Players string
-	Titles  string
+	Base          string
+	Home          string
+	Week          string
+	Year          string
+	YearRace      string
+	YearRaceChart string
+	Players       string
+	Titles        string
 }
 
 func NewRenderer(cfg RendererConfig) *Renderer {
 	funcs := template.FuncMap{
+		"add": func(a, b float64) float64 { return a + b },
+		"sub": func(a, b float64) float64 { return a - b },
 		"derefInt": func(p *int) int {
 			if p == nil {
 				return 0
@@ -46,11 +52,13 @@ func NewRenderer(cfg RendererConfig) *Renderer {
 	}
 
 	return &Renderer{
-		home:    parse(cfg.Base, cfg.Home),
-		week:    parse(cfg.Base, cfg.Week),
-		year:    parse(cfg.Base, cfg.Year),
-		players: parse(cfg.Base, cfg.Players),
-		titles:  parse(cfg.Base, cfg.Titles),
+		home:          parse(cfg.Base, cfg.Home),
+		week:          parse(cfg.Base, cfg.Week),
+		year:          parse(cfg.Base, cfg.Year),
+		yearRace:      parse(cfg.Base, cfg.YearRace),
+		yearRaceChart: parse(cfg.Base, cfg.YearRaceChart),
+		players:       parse(cfg.Base, cfg.Players),
+		titles:        parse(cfg.Base, cfg.Titles),
 	}
 }
 
@@ -64,6 +72,10 @@ func (r *Renderer) HTML(w http.ResponseWriter, layout, name string, data any) er
 		return r.week.ExecuteTemplate(w, layout, data)
 	case "year":
 		return r.year.ExecuteTemplate(w, layout, data)
+	case "year_race":
+		return r.yearRace.ExecuteTemplate(w, layout, data)
+	case "year_race_chart":
+		return r.yearRaceChart.ExecuteTemplate(w, layout, data)
 	case "players":
 		return r.players.ExecuteTemplate(w, layout, data)
 	case "titles":

@@ -106,7 +106,7 @@ func (s *MemoryStore) RecentGames(limit int) ([]Game, error) {
 	return out, nil
 }
 
-func (s *MemoryStore) GamesByWeek(year, week int) ([]Game, error) {
+func (s *MemoryStore) GetWeek(year, week int) ([]Game, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -121,7 +121,7 @@ func (s *MemoryStore) GamesByWeek(year, week int) ([]Game, error) {
 	return out, nil
 }
 
-func (s *MemoryStore) GamesByYear(year int) ([]Game, error) {
+func (s *MemoryStore) GetYear(year int) ([]Game, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

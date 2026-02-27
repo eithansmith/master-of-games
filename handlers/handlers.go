@@ -2,6 +2,9 @@ package handlers
 
 import (
 	"fmt"
+	"html/template"
+	"log"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -279,9 +282,9 @@ func (s *Server) handleWeekCurrent(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleWeek(w http.ResponseWriter, r *http.Request) {
-	year, err1 := pathInt(r, "year")
-	week, err2 := pathInt(r, "week")
-	if err1 != nil || err2 != nil || week < 1 || week > 53 {
+	year, ok1 := pathInt(r, "year")
+	week, ok2 := pathInt(r, "week")
+	if !ok1 || !ok2 || week < 1 || week > 53 {
 		http.NotFound(w, r)
 		return
 	}
@@ -290,9 +293,9 @@ func (s *Server) handleWeek(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleWeekTiebreak(w http.ResponseWriter, r *http.Request) {
-	year, err1 := pathInt(r, "year")
-	week, err2 := pathInt(r, "week")
-	if err1 != nil || err2 != nil || week < 1 || week > 53 {
+	year, ok1 := pathInt(r, "year")
+	week, ok2 := pathInt(r, "week")
+	if !ok1 || !ok2 || week < 1 || week > 53 {
 		http.NotFound(w, r)
 		return
 	}
@@ -324,7 +327,7 @@ func (s *Server) renderWeek(w http.ResponseWriter, year, week int, formErr strin
 	py, pw := prevISOWeek(year, week)
 	ny, nw := nextISOWeek(year, week)
 
-	gamesByWeek, err := s.store.GamesByWeek(year, week)
+	gamesByWeek, err := s.store.GetWeek(year, week)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -369,7 +372,7 @@ func (s *Server) handleWeekTiebreakPost(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 
-	gamesByWeek, err := s.store.GamesByWeek(year, week)
+	gamesByWeek, err := s.store.GetWeek(year, week)
 	if err != nil {
 		s.renderWeek(w, year, week, "Unable to load games for this week.")
 		return
@@ -410,8 +413,8 @@ func (s *Server) handleWeekTiebreakPost(w http.ResponseWriter, r *http.Request, 
 }
 
 func (s *Server) handleYear(w http.ResponseWriter, r *http.Request) {
-	year, err := pathInt(r, "year")
-	if err != nil {
+	year, ok := pathInt(r, "year")
+	if !ok {
 		http.NotFound(w, r)
 		return
 	}
@@ -420,8 +423,8 @@ func (s *Server) handleYear(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleYearTiebreak(w http.ResponseWriter, r *http.Request) {
-	year, err := pathInt(r, "year")
-	if err != nil {
+	year, ok := pathInt(r, "year")
+	if !ok {
 		http.NotFound(w, r)
 		return
 	}
@@ -439,7 +442,7 @@ func (s *Server) renderYear(w http.ResponseWriter, year int, formErr string) {
 		pMap[p.ID] = p
 	}
 
-	gamesByYear, err := s.store.GamesByYear(year)
+	gamesByYear, err := s.store.GetYear(year)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -474,7 +477,7 @@ func (s *Server) handleYearTiebreakPost(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 
-	gamesByYear, err := s.store.GamesByYear(year)
+	gamesByYear, err := s.store.GetYear(year)
 	if err != nil {
 		s.renderYear(w, year, "Unable to load games for this year.")
 		return
@@ -508,6 +511,221 @@ func (s *Server) handleYearTiebreakPost(w http.ResponseWriter, r *http.Request, 
 	}
 
 	s.renderYear(w, year, "Tiebreaker saved.")
+}
+
+func (s *Server) handleYearRace(w http.ResponseWriter, r *http.Request) {
+	year, ok := pathInt(r, "year")
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+
+	vm := struct {
+		Title     string
+		Version   string
+		BuildTime string
+		StartTime string
+		YearNow   int
+		Year      int
+	}{
+		Title:     "Year Race",
+		Version:   s.meta.Version,
+		BuildTime: s.meta.BuildTime,
+		StartTime: s.meta.StartTime,
+		YearNow:   time.Now().Year(),
+		Year:      year,
+	}
+
+	if err := s.r.HTML(w, "year_race", "year_race", vm); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (s *Server) handleYearRaceChart(w http.ResponseWriter, r *http.Request) {
+	year, ok := pathInt(r, "year")
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+
+	games, err := s.store.GetYear(year)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	for _, g := range games {
+		isoY, isoW := g.PlayedAt.ISOWeek()
+		log.Printf("GAME id=%d playedAt=%s iso=%d-W%02d winners=%v title=%s",
+			g.ID,
+			g.PlayedAt.Format(time.RFC3339),
+			isoY, isoW,
+			g.WinnerIDs,
+			g.Title,
+		)
+	}
+
+	players, err := s.store.ListPlayers()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	race := game.ComputeYearRace(games, year, game.RaceMetricWins, 5, players)
+
+	vm := buildYearRaceChartVM(race)
+
+	if err := s.r.HTML(w, "year_race_chart", "year_race_chart", vm); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func buildYearRaceChartVM(race game.YearRace) yearRaceChartVM {
+	const (
+		w   = 900.0
+		h   = 420.0
+		pad = 44.0
+	)
+
+	vm := yearRaceChartVM{
+		SvgView: fmt.Sprintf("0 0 %.0f %.0f", w, h),
+		Width:   w,
+		Height:  h,
+		Pad:     pad,
+		Weeks:   race.Weeks,
+	}
+
+	// Max value across all series
+	maximum := 0.0
+	for _, s := range race.Series {
+		for _, v := range s.Values {
+			if v > maximum {
+				maximum = v
+			}
+		}
+	}
+
+	// max is the actual maximum value across all series
+	if maximum < 1 {
+		maximum = 1
+	}
+
+	// Simplified axis max:
+	// - keep it integer
+	// - do NOT round 3 up to 5
+	axisMax := math.Ceil(maximum)
+
+	// Optional tiny headroom: if axisMax == max and max <= 10, add 1
+	// so lines don’t sit exactly on the top.
+	// If you don't want headroom, delete this block.
+	if axisMax == maximum && axisMax <= 10 {
+		axisMax += 1
+	}
+
+	vm.Max = axisMax
+
+	n := len(race.Weeks)
+	plotW := w - 2*pad
+	plotH := h - 2*pad
+
+	xAt := func(i int) float64 {
+		if n <= 1 {
+			return pad
+		}
+		return pad + (plotW * float64(i) / float64(n-1))
+	}
+
+	yAt := func(v float64) float64 {
+		return (h - pad) - (plotH * (v / axisMax))
+	}
+
+	// ---- Y ticks (0..maximum) ----
+	// choose 4 intervals (5 ticks). Round maximum to something nice.
+	niceMax := maximum
+	if maximum <= 10 {
+		niceMax = maximum
+	} else {
+		niceMax = niceCeil(maximum)
+	}
+	if niceMax < 1 {
+		niceMax = 1
+	}
+	vm.Max = niceMax
+
+	// ---- Y ticks: integer ticks from 0..axisMax ----
+	vm.YTicks = nil
+
+	plotH = h - 2*pad
+	yAtAxis := func(v float64) float64 {
+		return (h - pad) - (plotH * (v / axisMax))
+	}
+
+	// If axisMax is big, don't draw 50 tick labels.
+	// We'll choose a step size (1,2,5,10...) based on axisMax.
+	step := yTickStep(int(axisMax))
+
+	for v := 0; v <= int(axisMax); v += step {
+		y := yAtAxis(float64(v))
+		vm.YTicks = append(vm.YTicks, yearRaceTick{
+			X:     pad - 8,
+			Y:     y + 4,
+			Label: fmt.Sprintf("%d", v),
+		})
+	}
+
+	// ---- X ticks (start, quarter points, end) ----
+	if n > 0 {
+		xTickIdx := uniqueSortedInts([]int{
+			0,
+			n / 4,
+			n / 2,
+			(3 * n) / 4,
+			n - 1,
+		})
+
+		for _, idx := range xTickIdx {
+			week := race.Weeks[idx]
+			x := xAt(idx)
+			vm.XTicks = append(vm.XTicks, yearRaceTick{
+				X:     x,
+				Y:     h - pad + 18,
+				Label: fmt.Sprintf("W%02d", week),
+			})
+		}
+	}
+
+	// ---- Series ----
+	// Use distinct hues so the lines are clearly different.
+	for i, s := range race.Series {
+		color := template.CSS(seriesColor(i))
+
+		ser := yearRaceSeriesVM{
+			Name:  s.Name,
+			Color: color,
+		}
+
+		// Path + points
+		for j, v := range s.Values {
+			x := xAt(j)
+			y := yAt(v)
+
+			ser.Points = append(ser.Points, yearRacePointVM{
+				X:     x,
+				Y:     y,
+				Title: fmt.Sprintf("%s — Week %d: %.0f wins", s.Name, race.Weeks[j], v),
+			})
+
+			if j == 0 {
+				ser.Path = fmt.Sprintf("M %.2f %.2f", x, y)
+			} else {
+				ser.Path += fmt.Sprintf(" L %.2f %.2f", x, y)
+			}
+		}
+
+		vm.Series = append(vm.Series, ser)
+	}
+
+	return vm
 }
 
 // ============================

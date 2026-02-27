@@ -7,6 +7,7 @@
         <div class="row" style="justify-content: space-between; align-items: baseline;">
             <h1 style="margin:0;">Year {{ .Year }}</h1>
             <a class="btn secondary" href="/years/{{ .YearNow }}">Current</a>
+            <a class="btn secondary" href="/years/{{ .Year }}/race">Race</a>
         </div>
 
         {{ if .FormError }}
