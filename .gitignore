@@ -1,6 +1,7 @@
 /bin/
 /dist/
 /tmp/
+.claude
 .idea
 *.exe
 .DS_Store

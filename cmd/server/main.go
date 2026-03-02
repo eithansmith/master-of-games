@@ -45,7 +45,7 @@ func main() {
 
 	srv := &http.Server{
 		Addr:              ":" + addr,
-		Handler:           logging(mux),
+		Handler:           logging(handlers.BasicAuth(mux)),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
