@@ -102,9 +102,13 @@
                         </div>
                         <form hx-post="/games/{{ .ID }}/toggle" hx-target="#main" hx-swap="innerHTML" method="post">
                             {{ if .IsActive }}<input type="hidden" name="active" value="0">
-                            <button class="btn danger" type="submit" title="Retire">Retire</button>{{ else }}
+                            <button class="btn danger" type="submit" title="Deactivate"
+                                    hx-confirm="Are you sure you want to deactivate this game?">Deactivate
+                            </button>{{ else }}
                                 <input type="hidden" name="active" value="1">
-                                <button class="btn secondary" type="submit" title="Restore">Restore</button>{{ end }}
+                                <button class="btn secondary" type="submit" title="Activate"
+                                        hx-confirm="Are you sure you want to activate this game?">Activate
+                                </button>{{ end }}
                         </form>
                     </div>
                 {{ end }}
