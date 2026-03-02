@@ -3,7 +3,6 @@ package handlers
 import (
 	"fmt"
 	"html/template"
-	"log"
 	"math"
 	"net/http"
 	"strconv"
@@ -552,17 +551,6 @@ func (s *Server) handleYearRaceChart(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
-	}
-
-	for _, g := range games {
-		isoY, isoW := g.PlayedAt.ISOWeek()
-		log.Printf("GAME id=%d playedAt=%s iso=%d-W%02d winners=%v title=%s",
-			g.ID,
-			g.PlayedAt.Format(time.RFC3339),
-			isoY, isoW,
-			g.WinnerIDs,
-			g.Title,
-		)
 	}
 
 	players, err := s.store.ListPlayers()
