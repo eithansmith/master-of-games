@@ -1,6 +1,7 @@
 package game
 
 import (
+	"context"
 	"errors"
 	"sort"
 	"sync"
@@ -32,10 +33,10 @@ func NewMemoryStore() *MemoryStore {
 
 	// Seed with the historical hardcoded lists.
 	for _, name := range SeedPlayers {
-		_, _ = s.AddPlayer(name)
+		_, _ = s.AddPlayer(context.Background(), name)
 	}
 	for _, name := range SeedTitles {
-		_, _ = s.AddTitle(name)
+		_, _ = s.AddTitle(context.Background(), name)
 	}
 
 	return s
@@ -47,7 +48,7 @@ func tbKey(scope, scopeKey string) string { return scope + "|" + scopeKey }
 // Games
 // ============================
 
-func (s *MemoryStore) AddGame(g Game) (Game, error) {
+func (s *MemoryStore) AddGame(_ context.Context, g Game) (Game, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -60,7 +61,7 @@ func (s *MemoryStore) AddGame(g Game) (Game, error) {
 	return g, nil
 }
 
-func (s *MemoryStore) DeleteGame(id int64) error {
+func (s *MemoryStore) DeleteGame(_ context.Context, id int64) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -73,7 +74,7 @@ func (s *MemoryStore) DeleteGame(id int64) error {
 	return errors.New("game not found")
 }
 
-func (s *MemoryStore) SetGameActive(id int64, active bool) error {
+func (s *MemoryStore) SetGameActive(_ context.Context, id int64, active bool) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -86,7 +87,7 @@ func (s *MemoryStore) SetGameActive(id int64, active bool) error {
 	return errors.New("game not found")
 }
 
-func (s *MemoryStore) RecentGames(limit int) ([]Game, error) {
+func (s *MemoryStore) RecentGames(_ context.Context, limit int) ([]Game, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -106,7 +107,7 @@ func (s *MemoryStore) RecentGames(limit int) ([]Game, error) {
 	return out, nil
 }
 
-func (s *MemoryStore) GetWeek(year, week int) ([]Game, error) {
+func (s *MemoryStore) GetWeek(_ context.Context, year, week int) ([]Game, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -121,7 +122,7 @@ func (s *MemoryStore) GetWeek(year, week int) ([]Game, error) {
 	return out, nil
 }
 
-func (s *MemoryStore) GetYear(year int) ([]Game, error) {
+func (s *MemoryStore) GetYear(_ context.Context, year int) ([]Game, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -140,7 +141,7 @@ func (s *MemoryStore) GetYear(year int) ([]Game, error) {
 // Players
 // ============================
 
-func (s *MemoryStore) ListPlayers() ([]Player, error) {
+func (s *MemoryStore) ListPlayers(_ context.Context) ([]Player, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -150,7 +151,7 @@ func (s *MemoryStore) ListPlayers() ([]Player, error) {
 	return out, nil
 }
 
-func (s *MemoryStore) AddPlayer(name string) (Player, error) {
+func (s *MemoryStore) AddPlayer(_ context.Context, name string) (Player, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -160,7 +161,7 @@ func (s *MemoryStore) AddPlayer(name string) (Player, error) {
 	return p, nil
 }
 
-func (s *MemoryStore) UpdatePlayer(id int64, name string) error {
+func (s *MemoryStore) UpdatePlayer(_ context.Context, id int64, name string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -173,7 +174,7 @@ func (s *MemoryStore) UpdatePlayer(id int64, name string) error {
 	return errors.New("player not found")
 }
 
-func (s *MemoryStore) SetPlayerActive(id int64, active bool) error {
+func (s *MemoryStore) SetPlayerActive(_ context.Context, id int64, active bool) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -186,7 +187,7 @@ func (s *MemoryStore) SetPlayerActive(id int64, active bool) error {
 	return errors.New("player not found")
 }
 
-func (s *MemoryStore) DeletePlayer(id int64) error {
+func (s *MemoryStore) DeletePlayer(_ context.Context, id int64) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -203,7 +204,7 @@ func (s *MemoryStore) DeletePlayer(id int64) error {
 // Titles
 // ============================
 
-func (s *MemoryStore) ListTitles() ([]Title, error) {
+func (s *MemoryStore) ListTitles(_ context.Context) ([]Title, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -213,7 +214,7 @@ func (s *MemoryStore) ListTitles() ([]Title, error) {
 	return out, nil
 }
 
-func (s *MemoryStore) AddTitle(name string) (Title, error) {
+func (s *MemoryStore) AddTitle(_ context.Context, name string) (Title, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -223,7 +224,7 @@ func (s *MemoryStore) AddTitle(name string) (Title, error) {
 	return t, nil
 }
 
-func (s *MemoryStore) UpdateTitle(id int64, name string) error {
+func (s *MemoryStore) UpdateTitle(_ context.Context, id int64, name string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -236,7 +237,7 @@ func (s *MemoryStore) UpdateTitle(id int64, name string) error {
 	return errors.New("title not found")
 }
 
-func (s *MemoryStore) SetTitleActive(id int64, active bool) error {
+func (s *MemoryStore) SetTitleActive(_ context.Context, id int64, active bool) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -249,7 +250,7 @@ func (s *MemoryStore) SetTitleActive(id int64, active bool) error {
 	return errors.New("title not found")
 }
 
-func (s *MemoryStore) DeleteTitle(id int64) error {
+func (s *MemoryStore) DeleteTitle(_ context.Context, id int64) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -271,7 +272,7 @@ func IsWeekdayLocal(t time.Time) bool {
 	return wd >= time.Monday && wd <= time.Friday
 }
 
-func (s *MemoryStore) GetTiebreaker(scope, scopeKey string) (Tiebreaker, bool, error) {
+func (s *MemoryStore) GetTiebreaker(_ context.Context, scope, scopeKey string) (Tiebreaker, bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	tb, ok := s.tiebreakers[tbKey(scope, scopeKey)]
@@ -281,7 +282,7 @@ func (s *MemoryStore) GetTiebreaker(scope, scopeKey string) (Tiebreaker, bool, e
 	return tb, ok, nil
 }
 
-func (s *MemoryStore) SetTiebreaker(tb Tiebreaker) error {
+func (s *MemoryStore) SetTiebreaker(_ context.Context, tb Tiebreaker) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.tiebreakers[tbKey(tb.Scope, tb.ScopeKey)] = tb

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"html/template"
 	"math"
@@ -12,13 +13,13 @@ import (
 	"github.com/eithansmith/master-of-games/game"
 )
 
-func (s *Server) newHomeVM() (HomeVM, error) {
-	allPlayers, err := s.store.ListPlayers()
+func (s *Server) newHomeVM(ctx context.Context) (HomeVM, error) {
+	allPlayers, err := s.store.ListPlayers(ctx)
 	if err != nil {
 		return HomeVM{}, err
 	}
 
-	allTitles, err := s.store.ListTitles()
+	allTitles, err := s.store.ListTitles(ctx)
 	if err != nil {
 		return HomeVM{}, err
 	}
@@ -51,7 +52,7 @@ func (s *Server) newHomeVM() (HomeVM, error) {
 		PlayerNames: pMap,
 		Titles:      titles,
 		Games: func() []game.Game {
-			gs, err := s.store.RecentGames(25)
+			gs, err := s.store.RecentGames(ctx, 25)
 			if err != nil {
 				return nil
 			}
@@ -78,8 +79,8 @@ func (s *Server) defaultHomeForm(_ []game.Player, _ []game.Title) HomeForm {
 	}
 }
 
-func (s *Server) handleHome(w http.ResponseWriter, _ *http.Request) {
-	vm, err := s.newHomeVM()
+func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
+	vm, err := s.newHomeVM(r.Context())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -90,15 +91,15 @@ func (s *Server) handleHome(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (s *Server) handleAddGame(w http.ResponseWriter, r *http.Request) {
-	allPlayers, err := s.store.ListPlayers()
+	allPlayers, err := s.store.ListPlayers(r.Context())
 	if err != nil {
-		s.renderHomeWithError(w, "Unable to load player list.", s.defaultHomeForm(nil, nil))
+		s.renderHomeWithError(r.Context(), w, "Unable to load player list.", s.defaultHomeForm(nil, nil))
 		return
 	}
 
-	allTitles, err := s.store.ListTitles()
+	allTitles, err := s.store.ListTitles(r.Context())
 	if err != nil {
-		s.renderHomeWithError(w, "Unable to load title list.", s.defaultHomeForm(nil, nil))
+		s.renderHomeWithError(r.Context(), w, "Unable to load title list.", s.defaultHomeForm(nil, nil))
 		return
 	}
 
@@ -116,7 +117,7 @@ func (s *Server) handleAddGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := r.ParseForm(); err != nil {
-		s.renderHomeWithError(w, "Invalid form submission.", s.defaultHomeForm(players, titles))
+		s.renderHomeWithError(r.Context(), w, "Invalid form submission.", s.defaultHomeForm(players, titles))
 		return
 	}
 
@@ -142,7 +143,7 @@ func (s *Server) handleAddGame(w http.ResponseWriter, r *http.Request) {
 			Winners:      parseInt64Map(r.Form["winners"]),
 			Notes:        notes,
 		}
-		s.renderHomeWithError(w, "Please select a valid game title.", form)
+		s.renderHomeWithError(r.Context(), w, "Please select a valid game title.", form)
 		return
 	}
 
@@ -159,27 +160,27 @@ func (s *Server) handleAddGame(w http.ResponseWriter, r *http.Request) {
 
 	playedAt, err := time.Parse("2006-01-02T15:04", playedAtStr)
 	if err != nil {
-		s.renderHomeWithError(w, "Please provide a valid date/time.", form)
+		s.renderHomeWithError(r.Context(), w, "Please provide a valid date/time.", form)
 		return
 	}
 
 	if !game.IsWeekdayLocal(playedAt) {
-		s.renderHomeWithError(w, "Only weekday games are allowed (Mon–Fri).", form)
+		s.renderHomeWithError(r.Context(), w, "Only weekday games are allowed (Mon–Fri).", form)
 		return
 	}
 
 	if len(participantIDs) == 0 {
-		s.renderHomeWithError(w, "Please select at least one participant.", form)
+		s.renderHomeWithError(r.Context(), w, "Please select at least one participant.", form)
 		return
 	}
 
 	if len(winnerIDs) == 0 {
-		s.renderHomeWithError(w, "Please select at least one winner.", form)
+		s.renderHomeWithError(r.Context(), w, "Please select at least one winner.", form)
 		return
 	}
 
 	if !isSubset(winnerIDs, participantIDs) {
-		s.renderHomeWithError(w, "Winners must also be selected as participants.", form)
+		s.renderHomeWithError(r.Context(), w, "Winners must also be selected as participants.", form)
 		return
 	}
 
@@ -191,14 +192,14 @@ func (s *Server) handleAddGame(w http.ResponseWriter, r *http.Request) {
 		Notes:          notes,
 	}
 
-	_, err = s.store.AddGame(g)
+	_, err = s.store.AddGame(r.Context(), g)
 	if err != nil {
-		s.renderHomeWithError(w, "Unable to save game.", form)
+		s.renderHomeWithError(r.Context(), w, "Unable to save game.", form)
 		return
 	}
 
 	// HTMX will swap #main, but a redirect works fine too.
-	vm, err := s.newHomeVM()
+	vm, err := s.newHomeVM(r.Context())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -216,13 +217,13 @@ func (s *Server) handleDeleteGame(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid id", http.StatusBadRequest)
 		return
 	}
-	err = s.store.SetGameActive(id, false)
+	err = s.store.SetGameActive(r.Context(), id, false)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	vm, err := s.newHomeVM()
+	vm, err := s.newHomeVM(r.Context())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -244,13 +245,13 @@ func (s *Server) handleGameToggle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	active := r.FormValue("active") == "1"
-	err = s.store.SetGameActive(id, active)
+	err = s.store.SetGameActive(r.Context(), id, active)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	vm, err := s.newHomeVM()
+	vm, err := s.newHomeVM(r.Context())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -278,7 +279,7 @@ func (s *Server) handleWeek(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.renderWeek(w, year, week, "")
+	s.renderWeek(r.Context(), w, year, week, "")
 }
 
 func (s *Server) handleWeekTiebreak(w http.ResponseWriter, r *http.Request) {
@@ -291,10 +292,11 @@ func (s *Server) handleWeekTiebreak(w http.ResponseWriter, r *http.Request) {
 	s.handleWeekTiebreakPost(w, r, year, week)
 }
 
-func (s *Server) renderWeek(w http.ResponseWriter, year, week int, formErr string) {
-	allPlayers, err := s.store.ListPlayers()
+func (s *Server) renderWeek(ctx context.Context, w http.ResponseWriter, year, week int, formErr string) {
+	allPlayers, err := s.store.ListPlayers(ctx)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	pMap := make(map[int64]game.Player, len(allPlayers))
@@ -316,12 +318,16 @@ func (s *Server) renderWeek(w http.ResponseWriter, year, week int, formErr strin
 	py, pw := prevISOWeek(year, week)
 	ny, nw := nextISOWeek(year, week)
 
-	gamesByWeek, err := s.store.GetWeek(year, week)
+	gamesByWeek, err := s.store.GetWeek(ctx, year, week)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
-	ws := game.ComputeWeekStandings(gamesByWeek, year, week, s.store.GetTiebreaker)
+	getTB := func(scope, scopeKey string) (game.Tiebreaker, bool, error) {
+		return s.store.GetTiebreaker(ctx, scope, scopeKey)
+	}
+	ws := game.ComputeWeekStandings(gamesByWeek, year, week, getTB)
 
 	vm := WeekVM{
 		Title:         "Week",
@@ -357,30 +363,33 @@ func (s *Server) renderWeek(w http.ResponseWriter, year, week int, formErr strin
 
 func (s *Server) handleWeekTiebreakPost(w http.ResponseWriter, r *http.Request, year, week int) {
 	if err := r.ParseForm(); err != nil {
-		s.renderWeek(w, year, week, "Invalid form submission.")
+		s.renderWeek(r.Context(), w, year, week, "Invalid form submission.")
 		return
 	}
 
-	gamesByWeek, err := s.store.GetWeek(year, week)
+	gamesByWeek, err := s.store.GetWeek(r.Context(), year, week)
 	if err != nil {
-		s.renderWeek(w, year, week, "Unable to load games for this week.")
+		s.renderWeek(r.Context(), w, year, week, "Unable to load games for this week.")
 		return
 	}
 
-	ws := game.ComputeWeekStandings(gamesByWeek, year, week, s.store.GetTiebreaker)
+	getTB := func(scope, scopeKey string) (game.Tiebreaker, bool, error) {
+		return s.store.GetTiebreaker(r.Context(), scope, scopeKey)
+	}
+	ws := game.ComputeWeekStandings(gamesByWeek, year, week, getTB)
 
 	if ws.TotalGames == 0 {
-		s.renderWeek(w, year, week, "No games were played this week—no tiebreaker needed.")
+		s.renderWeek(r.Context(), w, year, week, "No games were played this week—no tiebreaker needed.")
 		return
 	}
 	if len(ws.TopIDs) <= 1 {
-		s.renderWeek(w, year, week, "This week is not tied—no tiebreaker needed.")
+		s.renderWeek(r.Context(), w, year, week, "This week is not tied—no tiebreaker needed.")
 		return
 	}
 
 	winnerID, err := strconv.ParseInt(r.FormValue("winner_id"), 10, 64)
 	if err != nil || !containsInt64(ws.TopIDs, winnerID) {
-		s.renderWeek(w, year, week, "Please select a valid winner from the tied leaders.")
+		s.renderWeek(r.Context(), w, year, week, "Please select a valid winner from the tied leaders.")
 		return
 	}
 
@@ -392,13 +401,13 @@ func (s *Server) handleWeekTiebreakPost(w http.ResponseWriter, r *http.Request, 
 		Method:        "chance",
 		DecidedAt:     time.Now(),
 	}
-	err = s.store.SetTiebreaker(tb)
+	err = s.store.SetTiebreaker(r.Context(), tb)
 	if err != nil {
-		s.renderWeek(w, year, week, err.Error())
+		s.renderWeek(r.Context(), w, year, week, err.Error())
 		return
 	}
 
-	s.renderWeek(w, year, week, "Tiebreaker saved.")
+	s.renderWeek(r.Context(), w, year, week, "Tiebreaker saved.")
 }
 
 func (s *Server) handleYear(w http.ResponseWriter, r *http.Request) {
@@ -408,7 +417,7 @@ func (s *Server) handleYear(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.renderYear(w, year, "")
+	s.renderYear(r.Context(), w, year, "")
 }
 
 func (s *Server) handleYearTiebreak(w http.ResponseWriter, r *http.Request) {
@@ -420,10 +429,11 @@ func (s *Server) handleYearTiebreak(w http.ResponseWriter, r *http.Request) {
 	s.handleYearTiebreakPost(w, r, year)
 }
 
-func (s *Server) renderYear(w http.ResponseWriter, year int, formErr string) {
-	allPlayers, err := s.store.ListPlayers()
+func (s *Server) renderYear(ctx context.Context, w http.ResponseWriter, year int, formErr string) {
+	allPlayers, err := s.store.ListPlayers(ctx)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	pMap := make(map[int64]game.Player, len(allPlayers))
@@ -431,12 +441,16 @@ func (s *Server) renderYear(w http.ResponseWriter, year int, formErr string) {
 		pMap[p.ID] = p
 	}
 
-	gamesByYear, err := s.store.GetYear(year)
+	gamesByYear, err := s.store.GetYear(ctx, year)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
-	ys := game.ComputeYearStandings(gamesByYear, year, s.store.GetTiebreaker)
+	getTB := func(scope, scopeKey string) (game.Tiebreaker, bool, error) {
+		return s.store.GetTiebreaker(ctx, scope, scopeKey)
+	}
+	ys := game.ComputeYearStandings(gamesByYear, year, getTB)
 
 	vm := YearVM{
 		Title:         "Year",
@@ -462,26 +476,29 @@ func (s *Server) renderYear(w http.ResponseWriter, year int, formErr string) {
 
 func (s *Server) handleYearTiebreakPost(w http.ResponseWriter, r *http.Request, year int) {
 	if err := r.ParseForm(); err != nil {
-		s.renderYear(w, year, "Invalid form submission.")
+		s.renderYear(r.Context(), w, year, "Invalid form submission.")
 		return
 	}
 
-	gamesByYear, err := s.store.GetYear(year)
+	gamesByYear, err := s.store.GetYear(r.Context(), year)
 	if err != nil {
-		s.renderYear(w, year, "Unable to load games for this year.")
+		s.renderYear(r.Context(), w, year, "Unable to load games for this year.")
 		return
 	}
 
-	ys := game.ComputeYearStandings(gamesByYear, year, s.store.GetTiebreaker)
+	getTB := func(scope, scopeKey string) (game.Tiebreaker, bool, error) {
+		return s.store.GetTiebreaker(r.Context(), scope, scopeKey)
+	}
+	ys := game.ComputeYearStandings(gamesByYear, year, getTB)
 
 	if len(ys.TopIDs) <= 1 {
-		s.renderYear(w, year, "This year is not tied—no tiebreaker needed.")
+		s.renderYear(r.Context(), w, year, "This year is not tied—no tiebreaker needed.")
 		return
 	}
 
 	winnerID, err := strconv.ParseInt(r.FormValue("winner_id"), 10, 64)
 	if err != nil || !containsInt64(ys.TopIDs, winnerID) {
-		s.renderYear(w, year, "Please select a valid winner from the tied leaders.")
+		s.renderYear(r.Context(), w, year, "Please select a valid winner from the tied leaders.")
 		return
 	}
 
@@ -493,13 +510,13 @@ func (s *Server) handleYearTiebreakPost(w http.ResponseWriter, r *http.Request, 
 		Method:        "chance",
 		DecidedAt:     time.Now(),
 	}
-	err = s.store.SetTiebreaker(tb)
+	err = s.store.SetTiebreaker(r.Context(), tb)
 	if err != nil {
-		s.renderYear(w, year, err.Error())
+		s.renderYear(r.Context(), w, year, err.Error())
 		return
 	}
 
-	s.renderYear(w, year, "Tiebreaker saved.")
+	s.renderYear(r.Context(), w, year, "Tiebreaker saved.")
 }
 
 func (s *Server) handleYearRace(w http.ResponseWriter, r *http.Request) {
@@ -537,13 +554,13 @@ func (s *Server) handleYearRaceChart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	games, err := s.store.GetYear(year)
+	games, err := s.store.GetYear(r.Context(), year)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	players, err := s.store.ListPlayers()
+	players, err := s.store.ListPlayers(r.Context())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -710,31 +727,32 @@ func buildYearRaceChartVM(race game.YearRace) yearRaceChartVM {
 // Players / Titles CRUD
 // ============================
 
-func (s *Server) handlePlayers(w http.ResponseWriter, _ *http.Request) {
-	s.renderPlayers(w, "")
+func (s *Server) handlePlayers(w http.ResponseWriter, r *http.Request) {
+	s.renderPlayers(r.Context(), w, "")
 }
 
 func (s *Server) handlePlayersPost(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
-		s.renderPlayers(w, "Invalid form submission.")
+		s.renderPlayers(r.Context(), w, "Invalid form submission.")
 		return
 	}
 	name := strings.TrimSpace(r.FormValue("name"))
 	if name == "" {
-		s.renderPlayers(w, "Name is required.")
+		s.renderPlayers(r.Context(), w, "Name is required.")
 		return
 	}
-	if _, err := s.store.AddPlayer(name); err != nil {
-		s.renderPlayers(w, err.Error())
+	if _, err := s.store.AddPlayer(r.Context(), name); err != nil {
+		s.renderPlayers(r.Context(), w, err.Error())
 		return
 	}
 	http.Redirect(w, r, "/players", http.StatusSeeOther)
 }
 
-func (s *Server) renderPlayers(w http.ResponseWriter, errMsg string) {
-	players, err := s.store.ListPlayers()
+func (s *Server) renderPlayers(ctx context.Context, w http.ResponseWriter, errMsg string) {
+	players, err := s.store.ListPlayers(ctx)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	vm := PlayersVM{
@@ -766,9 +784,10 @@ func (s *Server) handlePlayerUpdate(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/players", http.StatusSeeOther)
 		return
 	}
-	err = s.store.UpdatePlayer(id, name)
+	err = s.store.UpdatePlayer(r.Context(), id, name)
 	if err != nil {
-		s.renderPlayers(w, err.Error())
+		s.renderPlayers(r.Context(), w, err.Error())
+		return
 	}
 	http.Redirect(w, r, "/players", http.StatusSeeOther)
 }
@@ -784,9 +803,10 @@ func (s *Server) handlePlayerToggle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	active := r.FormValue("active") == "1"
-	err = s.store.SetPlayerActive(id, active)
+	err = s.store.SetPlayerActive(r.Context(), id, active)
 	if err != nil {
-		s.renderPlayers(w, err.Error())
+		s.renderPlayers(r.Context(), w, err.Error())
+		return
 	}
 
 	http.Redirect(w, r, "/players", http.StatusSeeOther)
@@ -802,40 +822,41 @@ func (s *Server) handlePlayerDelete(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/players", http.StatusSeeOther)
 		return
 	}
-	err = s.store.SetPlayerActive(id, false)
+	err = s.store.SetPlayerActive(r.Context(), id, false)
 	if err != nil {
-		s.renderPlayers(w, "Unable to delete player (they may be referenced by an existing game).")
+		s.renderPlayers(r.Context(), w, "Unable to delete player (they may be referenced by an existing game).")
 		return
 	}
 
 	http.Redirect(w, r, "/players", http.StatusSeeOther)
 }
 
-func (s *Server) handleTitles(w http.ResponseWriter, _ *http.Request) {
-	s.renderTitles(w, "")
+func (s *Server) handleTitles(w http.ResponseWriter, r *http.Request) {
+	s.renderTitles(r.Context(), w, "")
 }
 
 func (s *Server) handleTitlesPost(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
-		s.renderTitles(w, "Invalid form submission.")
+		s.renderTitles(r.Context(), w, "Invalid form submission.")
 		return
 	}
 	name := strings.TrimSpace(r.FormValue("name"))
 	if name == "" {
-		s.renderTitles(w, "Name is required.")
+		s.renderTitles(r.Context(), w, "Name is required.")
 		return
 	}
-	if _, err := s.store.AddTitle(name); err != nil {
-		s.renderTitles(w, err.Error())
+	if _, err := s.store.AddTitle(r.Context(), name); err != nil {
+		s.renderTitles(r.Context(), w, err.Error())
 		return
 	}
 	http.Redirect(w, r, "/titles", http.StatusSeeOther)
 }
 
-func (s *Server) renderTitles(w http.ResponseWriter, errMsg string) {
-	titles, err := s.store.ListTitles()
+func (s *Server) renderTitles(ctx context.Context, w http.ResponseWriter, errMsg string) {
+	titles, err := s.store.ListTitles(ctx)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	vm := TitlesVM{
@@ -867,9 +888,10 @@ func (s *Server) handleTitleUpdate(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/titles", http.StatusSeeOther)
 		return
 	}
-	err = s.store.UpdateTitle(id, name)
+	err = s.store.UpdateTitle(r.Context(), id, name)
 	if err != nil {
-		s.renderTitles(w, err.Error())
+		s.renderTitles(r.Context(), w, err.Error())
+		return
 	}
 
 	http.Redirect(w, r, "/titles", http.StatusSeeOther)
@@ -886,9 +908,10 @@ func (s *Server) handleTitleToggle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	active := r.FormValue("active") == "1"
-	err = s.store.SetTitleActive(id, active)
+	err = s.store.SetTitleActive(r.Context(), id, active)
 	if err != nil {
-		s.renderTitles(w, err.Error())
+		s.renderTitles(r.Context(), w, err.Error())
+		return
 	}
 
 	http.Redirect(w, r, "/titles", http.StatusSeeOther)
@@ -904,19 +927,20 @@ func (s *Server) handleTitleDelete(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/titles", http.StatusSeeOther)
 		return
 	}
-	err = s.store.SetTitleActive(id, false)
+	err = s.store.SetTitleActive(r.Context(), id, false)
 	if err != nil {
-		s.renderTitles(w, "Unable to delete title (it may be referenced by an existing game).")
+		s.renderTitles(r.Context(), w, "Unable to delete title (it may be referenced by an existing game).")
 		return
 	}
 
 	http.Redirect(w, r, "/titles", http.StatusSeeOther)
 }
 
-func (s *Server) renderHomeWithError(w http.ResponseWriter, msg string, form HomeForm) {
-	vm, err := s.newHomeVM()
+func (s *Server) renderHomeWithError(ctx context.Context, w http.ResponseWriter, msg string, form HomeForm) {
+	vm, err := s.newHomeVM(ctx)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	vm.FormError = msg
 	vm.Form = form

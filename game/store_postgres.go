@@ -27,8 +27,8 @@ func NewPostgresStore(db *pgxpool.Pool) *PostgresStore {
 // Games
 // ============================
 
-func (s *PostgresStore) AddGame(g Game) (Game, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+func (s *PostgresStore) AddGame(ctx context.Context, g Game) (Game, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	err := s.db.QueryRow(ctx,
@@ -47,8 +47,8 @@ func (s *PostgresStore) AddGame(g Game) (Game, error) {
 	return g, nil
 }
 
-func (s *PostgresStore) DeleteGame(id int64) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+func (s *PostgresStore) DeleteGame(ctx context.Context, id int64) error {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	_, err := s.db.Exec(ctx, `DELETE FROM app.games WHERE id = $1`, id)
@@ -58,8 +58,8 @@ func (s *PostgresStore) DeleteGame(id int64) error {
 	return nil
 }
 
-func (s *PostgresStore) SetGameActive(id int64, active bool) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+func (s *PostgresStore) SetGameActive(ctx context.Context, id int64, active bool) error {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	_, err := s.db.Exec(ctx, `UPDATE app.games SET is_active = $2 WHERE id = $1`, id, active)
@@ -69,8 +69,8 @@ func (s *PostgresStore) SetGameActive(id int64, active bool) error {
 	return nil
 }
 
-func (s *PostgresStore) RecentGames(limit int) ([]Game, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+func (s *PostgresStore) RecentGames(ctx context.Context, limit int) ([]Game, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	q := `SELECT g.id, g.played_at, g.title_id, t.name, g.participant_ids, g.winner_ids, g.notes, g.is_active
@@ -103,8 +103,8 @@ func (s *PostgresStore) RecentGames(limit int) ([]Game, error) {
 	}
 	return out, nil
 }
-func (s *PostgresStore) GetWeek(year, week int) ([]Game, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+func (s *PostgresStore) GetWeek(ctx context.Context, year, week int) ([]Game, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	q := `SELECT g.id, g.played_at, g.title_id, t.name, g.participant_ids, g.winner_ids, g.notes, g.is_active
@@ -135,8 +135,8 @@ func (s *PostgresStore) GetWeek(year, week int) ([]Game, error) {
 	return out, nil
 }
 
-func (s *PostgresStore) GetYear(year int) ([]Game, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+func (s *PostgresStore) GetYear(ctx context.Context, year int) ([]Game, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	q := `SELECT g.id, g.played_at, g.title_id, t.name, g.participant_ids, g.winner_ids, g.notes, g.is_active
@@ -171,8 +171,8 @@ func (s *PostgresStore) GetYear(year int) ([]Game, error) {
 // Players
 // ============================
 
-func (s *PostgresStore) ListPlayers() ([]Player, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+func (s *PostgresStore) ListPlayers(ctx context.Context) ([]Player, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	rows, err := s.db.Query(ctx, `SELECT id, name, is_active FROM app.players ORDER BY name`)
@@ -196,8 +196,8 @@ func (s *PostgresStore) ListPlayers() ([]Player, error) {
 	return out, nil
 }
 
-func (s *PostgresStore) AddPlayer(name string) (Player, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+func (s *PostgresStore) AddPlayer(ctx context.Context, name string) (Player, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	var p Player
@@ -209,8 +209,8 @@ func (s *PostgresStore) AddPlayer(name string) (Player, error) {
 	return p, nil
 }
 
-func (s *PostgresStore) UpdatePlayer(id int64, name string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+func (s *PostgresStore) UpdatePlayer(ctx context.Context, id int64, name string) error {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	_, err := s.db.Exec(ctx, `UPDATE app.players SET name=$2 WHERE id=$1`, id, name)
@@ -221,8 +221,8 @@ func (s *PostgresStore) UpdatePlayer(id int64, name string) error {
 	return nil
 }
 
-func (s *PostgresStore) SetPlayerActive(id int64, active bool) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+func (s *PostgresStore) SetPlayerActive(ctx context.Context, id int64, active bool) error {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	_, err := s.db.Exec(ctx, `UPDATE app.players SET is_active = $2 WHERE id = $1`, id, active)
@@ -233,8 +233,8 @@ func (s *PostgresStore) SetPlayerActive(id int64, active bool) error {
 	return nil
 }
 
-func (s *PostgresStore) DeletePlayer(id int64) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+func (s *PostgresStore) DeletePlayer(ctx context.Context, id int64) error {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	// Prevent deleting a player referenced by any game.
@@ -264,8 +264,8 @@ func (s *PostgresStore) DeletePlayer(id int64) error {
 // Titles
 // ============================
 
-func (s *PostgresStore) ListTitles() ([]Title, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+func (s *PostgresStore) ListTitles(ctx context.Context) ([]Title, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	rows, err := s.db.Query(ctx, `SELECT id, name, is_active FROM app.titles ORDER BY name`)
@@ -289,8 +289,8 @@ func (s *PostgresStore) ListTitles() ([]Title, error) {
 	return out, nil
 }
 
-func (s *PostgresStore) AddTitle(name string) (Title, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+func (s *PostgresStore) AddTitle(ctx context.Context, name string) (Title, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	var t Title
@@ -302,8 +302,8 @@ func (s *PostgresStore) AddTitle(name string) (Title, error) {
 	return t, nil
 }
 
-func (s *PostgresStore) UpdateTitle(id int64, name string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+func (s *PostgresStore) UpdateTitle(ctx context.Context, id int64, name string) error {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	_, err := s.db.Exec(ctx, `UPDATE app.titles SET name=$2 WHERE id=$1`, id, name)
@@ -314,8 +314,8 @@ func (s *PostgresStore) UpdateTitle(id int64, name string) error {
 	return nil
 }
 
-func (s *PostgresStore) SetTitleActive(id int64, active bool) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+func (s *PostgresStore) SetTitleActive(ctx context.Context, id int64, active bool) error {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	_, err := s.db.Exec(ctx, `UPDATE app.titles SET is_active = $2 WHERE id = $1`, id, active)
@@ -326,8 +326,8 @@ func (s *PostgresStore) SetTitleActive(id int64, active bool) error {
 	return nil
 }
 
-func (s *PostgresStore) DeleteTitle(id int64) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+func (s *PostgresStore) DeleteTitle(ctx context.Context, id int64) error {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	_, err := s.db.Exec(ctx, `DELETE FROM app.titles WHERE id=$1`, id)
@@ -342,8 +342,8 @@ func (s *PostgresStore) DeleteTitle(id int64) error {
 // Tiebreakers
 // ============================
 
-func (s *PostgresStore) GetTiebreaker(scope, scopeKey string) (Tiebreaker, bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+func (s *PostgresStore) GetTiebreaker(ctx context.Context, scope, scopeKey string) (Tiebreaker, bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	var raw []byte
@@ -365,8 +365,8 @@ func (s *PostgresStore) GetTiebreaker(scope, scopeKey string) (Tiebreaker, bool,
 	return tb, true, nil
 }
 
-func (s *PostgresStore) SetTiebreaker(tb Tiebreaker) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+func (s *PostgresStore) SetTiebreaker(ctx context.Context, tb Tiebreaker) error {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	b, err := json.Marshal(tb)

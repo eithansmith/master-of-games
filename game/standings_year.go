@@ -89,7 +89,7 @@ func ComputeYearStandings(
 			Attendance:  att,
 			GamesPlayed: gp,
 			Wins:        wins,
-			WinRate:     math.Round(wr*1000) / 10, // percent with 1 decimal (e.g. 66.7)
+			WinRate:     math.Round(wr*1000) / 10, // percent with 1 decimal (e.g., 66.7)
 		})
 	}
 
@@ -111,7 +111,7 @@ func ComputeYearStandings(
 	}
 
 	n := len(ys.Stats)
-	half := (n + 1) / 2 // top half; for odd N, includes the larger half.
+	half := (n + 1) / 2 // the top half; for odd N, includes the larger half.
 
 	cutAttendance := ys.Stats[half-1].Attendance
 	for i := range ys.Stats {
@@ -149,12 +149,12 @@ func ComputeYearStandings(
 		//rate := float64(winsCount[pid]) / float64(gp)
 
 		// Use exact equality on the rational comparison by cross-multiplying to avoid float issues.
-		// rate == bestRate  <=>  wins/gp == bestWins/bestGP
-		// But we didn't store bestWins/bestGP. So we do a tolerant float compare OR recompute via cross-multiply by scanning again:
-		// We'll do cross-multiply with bestRate represented as wins/gp by re-finding a "best representative".
+		// rate == bestRate  <=>  wins/gp == bestWins/bestGP,
+		// but we didn't store the bestWins/bestGP. So we do a tolerant float compare OR recompute via cross-multiply by scanning again:
+		// We'll do cross-multiply with the bestRate represented as wins/gp by re-finding a "best representative".
 	}
 
-	// Re-find a representative best (wins, gp) pair, then use cross-multiply to find ties exactly.
+	// Re-find the representative best (wins, gp) pair, then use cross-multiply to find ties exactly.
 	var bestWins, bestGP int
 	for _, pid := range ys.Qualifiers {
 		gp := playedCount[pid]
@@ -184,7 +184,7 @@ func ComputeYearStandings(
 		return ys
 	}
 
-	// Tie: resolve via stored "game of chance" tiebreaker if present.
+	// Tie: resolve via stored the "game of chance" tiebreaker if present.
 	if len(ys.TopIDs) > 1 {
 		if getTB != nil {
 			tb, ok, err := getTB("yearly", ys.ScopeKey)

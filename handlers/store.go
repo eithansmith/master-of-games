@@ -12,31 +12,31 @@ import (
 //goland:noinspection GoCommentStart
 type Store interface {
 	// games
-	AddGame(g game.Game) (game.Game, error)
-	DeleteGame(id int64) error
-	SetGameActive(id int64, active bool) error
-	RecentGames(limit int) ([]game.Game, error)
+	AddGame(ctx context.Context, g game.Game) (game.Game, error)
+	DeleteGame(ctx context.Context, id int64) error
+	SetGameActive(ctx context.Context, id int64, active bool) error
+	RecentGames(ctx context.Context, limit int) ([]game.Game, error)
 
-	GetWeek(year, week int) ([]game.Game, error)
-	GetYear(year int) ([]game.Game, error)
+	GetWeek(ctx context.Context, year, week int) ([]game.Game, error)
+	GetYear(ctx context.Context, year int) ([]game.Game, error)
 
 	// players
-	ListPlayers() ([]game.Player, error)
-	AddPlayer(name string) (game.Player, error)
-	UpdatePlayer(id int64, name string) error
-	SetPlayerActive(id int64, active bool) error
-	DeletePlayer(id int64) error
+	ListPlayers(ctx context.Context) ([]game.Player, error)
+	AddPlayer(ctx context.Context, name string) (game.Player, error)
+	UpdatePlayer(ctx context.Context, id int64, name string) error
+	SetPlayerActive(ctx context.Context, id int64, active bool) error
+	DeletePlayer(ctx context.Context, id int64) error
 
 	// titles
-	ListTitles() ([]game.Title, error)
-	AddTitle(name string) (game.Title, error)
-	UpdateTitle(id int64, name string) error
-	SetTitleActive(id int64, active bool) error
-	DeleteTitle(id int64) error
+	ListTitles(ctx context.Context) ([]game.Title, error)
+	AddTitle(ctx context.Context, name string) (game.Title, error)
+	UpdateTitle(ctx context.Context, id int64, name string) error
+	SetTitleActive(ctx context.Context, id int64, active bool) error
+	DeleteTitle(ctx context.Context, id int64) error
 
 	// tiebreakers
-	GetTiebreaker(scope, scopeKey string) (game.Tiebreaker, bool, error)
-	SetTiebreaker(tb game.Tiebreaker) error
+	GetTiebreaker(ctx context.Context, scope, scopeKey string) (game.Tiebreaker, bool, error)
+	SetTiebreaker(ctx context.Context, tb game.Tiebreaker) error
 }
 
 // Pinger is a simple interface for testing.

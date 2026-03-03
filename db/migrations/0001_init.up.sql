@@ -20,8 +20,9 @@ CREATE TABLE IF NOT EXISTS app.players
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS idx_players_is_active ON app.players(is_active);
+CREATE INDEX IF NOT EXISTS idx_players_is_active ON app.players (is_active);
 
+-- noinspection SpellCheckingInspection
 INSERT INTO app.players (name)
 VALUES ('AFAILLA'),
        ('AMAAG'),
@@ -50,7 +51,7 @@ CREATE TABLE IF NOT EXISTS app.titles
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS idx_titles_is_active  ON app.titles(is_active);
+CREATE INDEX IF NOT EXISTS idx_titles_is_active ON app.titles (is_active);
 
 INSERT INTO app.titles (name)
 VALUES ('Bang'),
@@ -80,11 +81,11 @@ CREATE TABLE IF NOT EXISTS app.games
     participant_ids bigint[]                 default '{}'::bigint[] not null,
     winner_ids      bigint[]                 default '{}'::bigint[] not null,
     notes           text                     default ''::text       not null,
-    is_active  BOOLEAN     NOT NULL DEFAULT TRUE
+    is_active       BOOLEAN                                         NOT NULL DEFAULT TRUE
 );
 
 CREATE INDEX IF NOT EXISTS idx_games_played_at ON app.games (played_at DESC);
-CREATE INDEX IF NOT EXISTS idx_games_is_active   ON app.games(is_active);
+CREATE INDEX IF NOT EXISTS idx_games_is_active ON app.games (is_active);
 
 -- tiebreakers
 CREATE TABLE IF NOT EXISTS app.tiebreakers

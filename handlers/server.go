@@ -11,7 +11,7 @@ type Meta struct {
 	StartTime string
 }
 
-// Server owns HTTP handlers + template rendering for the app.
+// Server owns HTTP handlers and template rendering for the app.
 type Server struct {
 	r     *Renderer
 	store Store

@@ -83,7 +83,7 @@ input[type="submit"]:disabled {
 }
 
 .form label {
-    display:block;
+    display: block;
     margin-top: 10px;
 }
 
@@ -116,21 +116,21 @@ select, input[type="datetime-local"], input[type="text"], textarea {
 }
 
 .hint {
-    display:block;
+    display: block;
     opacity: 0.75;
     margin-top: 6px;
 }
 
 .chips {
-    display:flex;
-    flex-wrap:wrap;
+    display: flex;
+    flex-wrap: wrap;
     gap: 8px;
     margin-top: 8px;
 }
 
 .chip {
-    display:flex;
-    align-items:center;
+    display: flex;
+    align-items: center;
     gap: 8px;
     padding: 8px 10px;
     border-radius: 999px;
@@ -151,16 +151,16 @@ select, input[type="datetime-local"], input[type="text"], textarea {
 }
 
 .list {
-    display:flex;
-    flex-direction:column;
+    display: flex;
+    flex-direction: column;
     gap: 10px;
     margin-top: 10px;
 }
 
 .list-item {
-    display:flex;
-    justify-content:space-between;
-    align-items:flex-start;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
     gap: 12px;
     padding: 12px;
     border-radius: 14px;
@@ -179,21 +179,21 @@ select, input[type="datetime-local"], input[type="text"], textarea {
 }
 
 .nav {
-    display:flex;
+    display: flex;
     gap: 10px;
     margin-top: 8px;
     flex-wrap: wrap;
 }
 
 .nav-link {
-    color:#e8eef6;
-    text-decoration:none;
-    opacity:0.85;
+    color: #e8eef6;
+    text-decoration: none;
+    opacity: 0.85;
 }
 
 .nav-link:hover {
-    opacity:1;
-    text-decoration:underline;
+    opacity: 1;
+    text-decoration: underline;
 }
 
 .trophy {
@@ -207,7 +207,7 @@ select, input[type="datetime-local"], input[type="text"], textarea {
 }
 
 .pill {
-    display:inline-block;
+    display: inline-block;
     margin-left: 8px;
     padding: 2px 8px;
     border-radius: 999px;
