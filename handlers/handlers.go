@@ -42,22 +42,21 @@ func (s *Server) newHomeVM(ctx context.Context) (HomeVM, error) {
 		pMap[p.ID] = p.Name
 	}
 
+	recentGames, err := s.store.RecentGames(ctx, 25)
+	if err != nil {
+		return HomeVM{}, err
+	}
+
 	vm := HomeVM{
-		Title:       "Master of Games",
-		Version:     s.meta.Version,
-		BuildTime:   s.meta.BuildTime,
-		StartTime:   s.meta.StartTime,
-		YearNow:     time.Now().Year(),
-		Players:     players,
-		PlayerNames: pMap,
-		Titles:      titles,
-		Games: func() []game.Game {
-			gs, err := s.store.RecentGames(ctx, 25)
-			if err != nil {
-				return nil
-			}
-			return gs
-		}(),
+		Title:        "Master of Games",
+		Version:      s.meta.Version,
+		BuildTime:    s.meta.BuildTime,
+		StartTime:    s.meta.StartTime,
+		YearNow:      time.Now().Year(),
+		Players:      players,
+		PlayerNames:  pMap,
+		Titles:       titles,
+		Games:        recentGames,
 		ShowAllGames: true,
 		Form:         s.defaultHomeForm(players, titles),
 	}
