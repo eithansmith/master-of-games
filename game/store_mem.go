@@ -95,6 +95,9 @@ func (s *MemoryStore) RecentGames(_ context.Context, limit int) ([]Game, error) 
 	copy(out, s.games)
 
 	sort.Slice(out, func(i, j int) bool {
+		if out[i].IsActive != out[j].IsActive {
+			return out[i].IsActive
+		}
 		if out[i].PlayedAt.Equal(out[j].PlayedAt) {
 			return out[i].ID > out[j].ID
 		}
@@ -147,7 +150,12 @@ func (s *MemoryStore) ListPlayers(_ context.Context) ([]Player, error) {
 
 	out := make([]Player, len(s.players))
 	copy(out, s.players)
-	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].IsActive != out[j].IsActive {
+			return out[i].IsActive
+		}
+		return out[i].Name < out[j].Name
+	})
 	return out, nil
 }
 
@@ -210,7 +218,12 @@ func (s *MemoryStore) ListTitles(_ context.Context) ([]Title, error) {
 
 	out := make([]Title, len(s.titles))
 	copy(out, s.titles)
-	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].IsActive != out[j].IsActive {
+			return out[i].IsActive
+		}
+		return out[i].Name < out[j].Name
+	})
 	return out, nil
 }
 

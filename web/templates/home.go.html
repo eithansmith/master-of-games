@@ -83,7 +83,12 @@
             <p>No games yet. Log the first one ☝️</p>
         {{ else }}
             <div class="list">
+                {{ $divider := false }}
                 {{ range .Games }}
+                {{ if and (not .IsActive) (not $divider) }}
+                    <div class="list-divider">Inactive</div>
+                    {{ $divider = true }}
+                {{ end }}
                     <div class="list-item">
                         <div class="li-main">
                             <div class="li-title">{{ .Title }} {{ if not .IsActive }}<span

@@ -22,7 +22,12 @@
             <p>No players yet.</p>
         {{ else }}
             <div class="list">
+                {{ $divider := false }}
                 {{ range .Players }}
+                {{ if and (not .IsActive) (not $divider) }}
+                    <div class="list-divider">Inactive</div>
+                    {{ $divider = true }}
+                {{ end }}
                     <div class="list-item">
                         <div class="li-main">
                             {{ if not .IsActive }}

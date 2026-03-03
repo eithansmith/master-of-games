@@ -76,7 +76,7 @@ func (s *PostgresStore) RecentGames(ctx context.Context, limit int) ([]Game, err
 	q := `SELECT g.id, g.played_at, g.title_id, t.name, g.participant_ids, g.winner_ids, g.notes, g.is_active
 		  FROM app.games g
 		  JOIN app.titles t ON t.id = g.title_id
-		 ORDER BY g.played_at DESC, g.id DESC`
+		 ORDER BY g.is_active DESC, g.played_at DESC, g.id DESC`
 
 	var args []any
 	if limit > 0 {
@@ -175,7 +175,7 @@ func (s *PostgresStore) ListPlayers(ctx context.Context) ([]Player, error) {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	rows, err := s.db.Query(ctx, `SELECT id, name, is_active FROM app.players ORDER BY name`)
+	rows, err := s.db.Query(ctx, `SELECT id, name, is_active FROM app.players ORDER BY is_active DESC, name`)
 	if err != nil {
 		return nil, fmt.Errorf("ListPlayers: %w", err)
 	}
@@ -268,7 +268,7 @@ func (s *PostgresStore) ListTitles(ctx context.Context) ([]Title, error) {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	rows, err := s.db.Query(ctx, `SELECT id, name, is_active FROM app.titles ORDER BY name`)
+	rows, err := s.db.Query(ctx, `SELECT id, name, is_active FROM app.titles ORDER BY is_active DESC, name`)
 	if err != nil {
 		return nil, fmt.Errorf("ListTitles: %w", err)
 	}
