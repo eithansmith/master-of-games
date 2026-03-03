@@ -144,7 +144,9 @@ func (s *MemoryStore) GetYear(_ context.Context, year int) ([]Game, error) {
 // Players
 // ============================
 
+//goland:noinspection DuplicatedCode
 func (s *MemoryStore) ListPlayers(_ context.Context) ([]Player, error) {
+	//goland:noinspection DuplicatedCode
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -212,7 +214,9 @@ func (s *MemoryStore) DeletePlayer(_ context.Context, id int64) error {
 // Titles
 // ============================
 
+//goland:noinspection DuplicatedCode
 func (s *MemoryStore) ListTitles(_ context.Context) ([]Title, error) {
+	//goland:noinspection DuplicatedCode
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

@@ -4,7 +4,7 @@ A lightweight web app for tracking lunchtime board game results. Log games, trac
 
 ## Features
 
-- **Game log** — Record games with title, date/time, participants, winners, and notes. Weekday games only (Mon–Fri).
+- **Game log** — Record games with title, date/time, participants, winners, and notes. Weekday games only (Mon – Fri).
 - **Weekly standings** — Win counts per player for any ISO week, with tiebreaker support.
 - **Yearly standings** — Qualifiers (top half by attendance) ranked by win rate, with tiebreaker support.
 - **Year race chart** — SVG line chart of cumulative wins across the year.
@@ -83,27 +83,27 @@ Tiebreakers are stored in `app.tiebreakers` as JSON keyed by `(scope, scope_key)
 
 ## Routes
 
-| Method | Path                          | Description                        |
-|--------|-------------------------------|------------------------------------|
-| GET    | `/`                           | Home — log a game, recent games    |
-| POST   | `/games`                      | Add a game                         |
-| POST   | `/games/{id}/toggle`          | Activate / deactivate a game       |
-| POST   | `/games/{id}/delete`          | Deactivate a game                  |
-| GET    | `/weeks/current`              | Redirect to current ISO week       |
-| GET    | `/weeks/{year}/{week}`        | Weekly standings                   |
-| POST   | `/weeks/{year}/{week}/tiebreak` | Set weekly tiebreaker             |
-| GET    | `/years/{year}`               | Yearly standings                   |
-| POST   | `/years/{year}/tiebreak`      | Set yearly tiebreaker              |
-| GET    | `/years/{year}/race`          | Year race page                     |
-| GET    | `/years/{year}/race/chart`    | Year race SVG chart (HTMX partial) |
-| GET    | `/players`                    | Players list                       |
-| POST   | `/players`                    | Add a player                       |
-| POST   | `/players/{id}/update`        | Rename a player                    |
-| POST   | `/players/{id}/toggle`        | Activate / deactivate a player     |
-| POST   | `/players/{id}/delete`        | Deactivate a player                |
-| GET    | `/titles`                     | Titles list                        |
-| POST   | `/titles`                     | Add a title                        |
-| POST   | `/titles/{id}/update`         | Rename a title                     |
-| POST   | `/titles/{id}/toggle`         | Activate / deactivate a title      |
-| POST   | `/titles/{id}/delete`         | Deactivate a title                 |
-| GET    | `/healthz`                    | Health check (no auth required)    |
+| Method | Path                            | Description                        |
+|--------|---------------------------------|------------------------------------|
+| GET    | `/`                             | Home — log a game, recent games    |
+| POST   | `/games`                        | Add a game                         |
+| POST   | `/games/{id}/toggle`            | Activate / deactivate a game       |
+| POST   | `/games/{id}/delete`            | Deactivate a game                  |
+| GET    | `/weeks/current`                | Redirect to current ISO week       |
+| GET    | `/weeks/{year}/{week}`          | Weekly standings                   |
+| POST   | `/weeks/{year}/{week}/tiebreak` | Set weekly tiebreaker              |
+| GET    | `/years/{year}`                 | Yearly standings                   |
+| POST   | `/years/{year}/tiebreak`        | Set yearly tiebreaker              |
+| GET    | `/years/{year}/race`            | Year race page                     |
+| GET    | `/years/{year}/race/chart`      | Year race SVG chart (HTMX partial) |
+| GET    | `/players`                      | Players list                       |
+| POST   | `/players`                      | Add a player                       |
+| POST   | `/players/{id}/update`          | Rename a player                    |
+| POST   | `/players/{id}/toggle`          | Activate / deactivate a player     |
+| POST   | `/players/{id}/delete`          | Deactivate a player                |
+| GET    | `/titles`                       | Titles list                        |
+| POST   | `/titles`                       | Add a title                        |
+| POST   | `/titles/{id}/update`           | Rename a title                     |
+| POST   | `/titles/{id}/toggle`           | Activate / deactivate a title      |
+| POST   | `/titles/{id}/delete`           | Deactivate a title                 |
+| GET    | `/healthz`                      | Health check (no auth required)    |

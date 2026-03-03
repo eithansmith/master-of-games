@@ -57,7 +57,7 @@ func TestMemoryStore_ListPlayers_SortActiveFirst(t *testing.T) {
 	}
 
 	// Among active players, alphabetical order.
-	activePlayers := []Player{}
+	var activePlayers []Player
 	for _, p := range players {
 		if p.IsActive {
 			activePlayers = append(activePlayers, p)

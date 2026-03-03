@@ -86,6 +86,7 @@ func TestComputeYearStandings_WinRateBeatsRawWins(t *testing.T) {
 	// Player 1: attends 2 days, plays 3 games, wins 1 = 33% win rate.
 	// Player 2: attends 2 days, plays 1 game, wins 1 = 100% win rate.
 	// Both qualify (top half); player 2 should win despite fewer raw wins.
+	//goland:noinspection GrazieInspection
 	games := []Game{
 		makeYearGame(day(2026, 1, 5), []int64{1, 2}, []int64{1}), // both attend Jan 5; p1 wins
 		makeYearGame(day(2026, 1, 6), []int64{1}, nil),           // p1 plays Jan 6, no winner

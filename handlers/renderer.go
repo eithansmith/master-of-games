@@ -29,6 +29,7 @@ type RendererConfig struct {
 }
 
 func NewRenderer(cfg RendererConfig) *Renderer {
+	//goland:noinspection SpellCheckingInspection
 	funcs := template.FuncMap{
 		"add":  func(a, b float64) float64 { return a + b },
 		"sub":  func(a, b float64) float64 { return a - b },
