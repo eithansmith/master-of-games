@@ -8,7 +8,9 @@
         <title>{{ .Title }}</title>
 
         <script src="https://unpkg.com/htmx.org@1.9.12"></script>
-        <script src="//unpkg.com/alpinejs" defer></script>
+        <script src="https://unpkg.com/alpinejs" defer></script>
+        <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css"/>
         <link rel="stylesheet" href="/static/app.css"/>
     </head>
     <body>
@@ -35,6 +37,17 @@
         {{if ne .BuildTime ""}}built: {{.BuildTime}}<br>{{end}}
         started: {{.StartTime}}
     </footer>
+    <script>
+        document.body.addEventListener("showToast", function (e) {
+            Toastify({
+                text: e.detail.message,
+                duration: 3000,
+                gravity: "top",
+                position: "right",
+                stopOnFocus: true,
+            }).showToast();
+        });
+    </script>
     </body>
     </html>
 {{end}}

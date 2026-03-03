@@ -10,7 +10,7 @@
             <div class="alert">{{ .FormError }}</div>
         {{ end }}
 
-        <form method="post" action="/players" class="row" style="gap: 10px; align-items: end; margin-bottom: 14px;">
+        <form hx-post="/players" hx-target="#main" hx-swap="innerHTML" class="row" style="gap: 10px; align-items: end; margin-bottom: 14px;">
             <label style="flex:1;">
                 Add player
                 <input type="text" name="name" placeholder="Name" required>
@@ -27,7 +27,7 @@
                         <div class="li-main">
                             {{ if not .IsActive }}
                                 <div class="pill">Inactive</div>{{ end }}
-                            <form method="post" action="/players/{{ .ID }}/update" class="row"
+                            <form hx-post="/players/{{ .ID }}/update" hx-target="#main" hx-swap="innerHTML" class="row"
                                   style="gap:10px; align-items:end; margin:0;">
                                 <label style="flex:1; margin:0;">
                                     Name
@@ -38,8 +38,7 @@
                         </div>
 
                         <form hx-post="/players/{{ .ID }}/toggle"
-                              hx-on--after-request="window.location.reload()"
-                              hx-swap="none" method="post"
+                              hx-target="#main" hx-swap="innerHTML" method="post"
                               hx-confirm="Are you sure?"
                               style="margin:0;"
                         >

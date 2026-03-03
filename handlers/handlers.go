@@ -185,6 +185,7 @@ func (s *Server) handleAddGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	vm.Form = s.defaultHomeForm(vm.Players, vm.Titles)
+	setToast(w, "Game saved.")
 	if err := s.r.HTML(w, "main", "home", vm); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -208,6 +209,7 @@ func (s *Server) handleDeleteGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	setToast(w, "Game removed.")
 	if err := s.r.HTML(w, "main", "home", vm); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -236,6 +238,11 @@ func (s *Server) handleGameToggle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	msg := "Game deactivated."
+	if active {
+		msg = "Game activated."
+	}
+	setToast(w, msg)
 	if err := s.r.HTML(w, "main", "home", vm); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -700,7 +707,22 @@ func buildYearRaceChartVM(race game.YearRace) yearRaceChartVM {
 // ============================
 
 func (s *Server) handlePlayers(w http.ResponseWriter, r *http.Request) {
-	s.renderPlayers(r.Context(), w, "")
+	players, err := s.store.ListPlayers(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	vm := PlayersVM{
+		Title:     "Players",
+		Version:   s.meta.Version,
+		BuildTime: s.meta.BuildTime,
+		StartTime: s.meta.StartTime,
+		YearNow:   time.Now().Year(),
+		Players:   players,
+	}
+	if err := s.r.HTML(w, "players", "players", vm); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func (s *Server) handlePlayersPost(w http.ResponseWriter, r *http.Request) {
@@ -717,7 +739,8 @@ func (s *Server) handlePlayersPost(w http.ResponseWriter, r *http.Request) {
 		s.renderPlayers(r.Context(), w, err.Error())
 		return
 	}
-	http.Redirect(w, r, "/players", http.StatusSeeOther)
+	setToast(w, "Player added.")
+	s.renderPlayers(r.Context(), w, "")
 }
 
 func (s *Server) renderPlayers(ctx context.Context, w http.ResponseWriter, errMsg string) {
@@ -736,7 +759,7 @@ func (s *Server) renderPlayers(ctx context.Context, w http.ResponseWriter, errMs
 		Players:   players,
 		FormError: errMsg,
 	}
-	if err := s.r.HTML(w, "players", "players", vm); err != nil {
+	if err := s.r.HTML(w, "main", "players", vm); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -761,7 +784,8 @@ func (s *Server) handlePlayerUpdate(w http.ResponseWriter, r *http.Request) {
 		s.renderPlayers(r.Context(), w, err.Error())
 		return
 	}
-	http.Redirect(w, r, "/players", http.StatusSeeOther)
+	setToast(w, "Player updated.")
+	s.renderPlayers(r.Context(), w, "")
 }
 
 func (s *Server) handlePlayerToggle(w http.ResponseWriter, r *http.Request) {
@@ -781,7 +805,12 @@ func (s *Server) handlePlayerToggle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/players", http.StatusSeeOther)
+	msg := "Player deactivated."
+	if active {
+		msg = "Player activated."
+	}
+	setToast(w, msg)
+	s.renderPlayers(r.Context(), w, "")
 }
 
 func (s *Server) handlePlayerDelete(w http.ResponseWriter, r *http.Request) {
@@ -800,11 +829,27 @@ func (s *Server) handlePlayerDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/players", http.StatusSeeOther)
+	setToast(w, "Player deactivated.")
+	s.renderPlayers(r.Context(), w, "")
 }
 
 func (s *Server) handleTitles(w http.ResponseWriter, r *http.Request) {
-	s.renderTitles(r.Context(), w, "")
+	titles, err := s.store.ListTitles(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	vm := TitlesVM{
+		Title:     "Titles",
+		Version:   s.meta.Version,
+		BuildTime: s.meta.BuildTime,
+		StartTime: s.meta.StartTime,
+		YearNow:   time.Now().Year(),
+		Titles:    titles,
+	}
+	if err := s.r.HTML(w, "titles", "titles", vm); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func (s *Server) handleTitlesPost(w http.ResponseWriter, r *http.Request) {
@@ -821,7 +866,8 @@ func (s *Server) handleTitlesPost(w http.ResponseWriter, r *http.Request) {
 		s.renderTitles(r.Context(), w, err.Error())
 		return
 	}
-	http.Redirect(w, r, "/titles", http.StatusSeeOther)
+	setToast(w, "Title added.")
+	s.renderTitles(r.Context(), w, "")
 }
 
 func (s *Server) renderTitles(ctx context.Context, w http.ResponseWriter, errMsg string) {
@@ -840,7 +886,7 @@ func (s *Server) renderTitles(ctx context.Context, w http.ResponseWriter, errMsg
 		Titles:    titles,
 		FormError: errMsg,
 	}
-	if err := s.r.HTML(w, "titles", "titles", vm); err != nil {
+	if err := s.r.HTML(w, "main", "titles", vm); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -866,7 +912,8 @@ func (s *Server) handleTitleUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/titles", http.StatusSeeOther)
+	setToast(w, "Title updated.")
+	s.renderTitles(r.Context(), w, "")
 }
 
 func (s *Server) handleTitleToggle(w http.ResponseWriter, r *http.Request) {
@@ -886,7 +933,12 @@ func (s *Server) handleTitleToggle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/titles", http.StatusSeeOther)
+	msg := "Title deactivated."
+	if active {
+		msg = "Title activated."
+	}
+	setToast(w, msg)
+	s.renderTitles(r.Context(), w, "")
 }
 
 func (s *Server) handleTitleDelete(w http.ResponseWriter, r *http.Request) {
@@ -905,7 +957,8 @@ func (s *Server) handleTitleDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/titles", http.StatusSeeOther)
+	setToast(w, "Title deactivated.")
+	s.renderTitles(r.Context(), w, "")
 }
 
 func (s *Server) renderHomeWithError(ctx context.Context, w http.ResponseWriter, msg string, form HomeForm) {

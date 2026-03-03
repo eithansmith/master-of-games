@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 	"net/http"
@@ -10,6 +11,11 @@ import (
 
 	"github.com/eithansmith/master-of-games/game"
 )
+
+func setToast(w http.ResponseWriter, message string) {
+	b, _ := json.Marshal(map[string]any{"showToast": map[string]string{"message": message}})
+	w.Header().Set("HX-Trigger", string(b))
+}
 
 func activePlayers(all []game.Player) []game.Player {
 	out := make([]game.Player, 0, len(all))
