@@ -2,11 +2,13 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"net/http"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/eithansmith/master-of-games/game"
@@ -191,4 +193,18 @@ func yTickStep(axisMax int) int {
 	default:
 		return 20
 	}
+}
+
+func addPlayer(r *http.Request, s *Server) error {
+	if err := r.ParseForm(); err != nil {
+		return errors.New("invalid form submission")
+	}
+	name := strings.TrimSpace(r.FormValue("name"))
+	if name == "" {
+		return errors.New("name is required")
+	}
+	if _, err := s.store.AddPlayer(r.Context(), name); err != nil {
+		return err
+	}
+	return nil
 }

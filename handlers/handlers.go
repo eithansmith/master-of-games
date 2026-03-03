@@ -726,19 +726,11 @@ func (s *Server) handlePlayers(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handlePlayersPost(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		s.renderPlayers(r.Context(), w, "Invalid form submission.")
-		return
-	}
-	name := strings.TrimSpace(r.FormValue("name"))
-	if name == "" {
-		s.renderPlayers(r.Context(), w, "Name is required.")
-		return
-	}
-	if _, err := s.store.AddPlayer(r.Context(), name); err != nil {
+	if err := addPlayer(r, s); err != nil {
 		s.renderPlayers(r.Context(), w, err.Error())
 		return
 	}
+	s.renderPlayers(r.Context(), w, "")
 	setToast(w, "Player added.")
 	s.renderPlayers(r.Context(), w, "")
 }
@@ -853,21 +845,13 @@ func (s *Server) handleTitles(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleTitlesPost(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		s.renderTitles(r.Context(), w, "Invalid form submission.")
+	if err := addPlayer(r, s); err != nil {
+		s.renderPlayers(r.Context(), w, err.Error())
 		return
 	}
-	name := strings.TrimSpace(r.FormValue("name"))
-	if name == "" {
-		s.renderTitles(r.Context(), w, "Name is required.")
-		return
-	}
-	if _, err := s.store.AddTitle(r.Context(), name); err != nil {
-		s.renderTitles(r.Context(), w, err.Error())
-		return
-	}
-	setToast(w, "Title added.")
-	s.renderTitles(r.Context(), w, "")
+	s.renderPlayers(r.Context(), w, "")
+	setToast(w, "Player added.")
+	s.renderPlayers(r.Context(), w, "")
 }
 
 func (s *Server) renderTitles(ctx context.Context, w http.ResponseWriter, errMsg string) {

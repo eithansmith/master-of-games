@@ -37,6 +37,7 @@
         {{if ne .BuildTime ""}}built: {{.BuildTime}}<br>{{end}}
         started: {{.StartTime}}
     </footer>
+    <!--suppress JSUnresolvedReference -->
     <script>
         document.body.addEventListener("showToast", function (e) {
             Toastify({
