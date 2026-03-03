@@ -110,7 +110,7 @@ func (s *PostgresStore) GetWeek(ctx context.Context, year, week int) ([]Game, er
 	q := `SELECT g.id, g.played_at, g.title_id, t.name, g.participant_ids, g.winner_ids, g.notes, g.is_active
 		  FROM app.games g
 		  JOIN app.titles t ON t.id = g.title_id
-		 WHERE EXTRACT(YEAR FROM g.played_at) = $1 AND EXTRACT(WEEK FROM g.played_at) = $2
+		 WHERE EXTRACT(ISOYEAR FROM g.played_at) = $1 AND EXTRACT(WEEK FROM g.played_at) = $2
 		   AND g.is_active = true
 		 ORDER BY g.played_at, g.id`
 
