@@ -2,16 +2,22 @@
 
     {{ if .Weeks }}
 
-        <svg viewBox="{{ .SvgView }}" style="width:100%; max-width:980px; display:block;">
-            <!-- Plot area background grid -->
-            {{ $left := .Pad }}
-            {{ $top := .Pad }}
-            {{ $right := sub .Width .Pad }}
+        <svg viewBox="{{ .SvgView }}" style="width:100%; max-width:1000px; display:block;">
+            {{ $left   := .Pad }}
+            {{ $top    := .Pad }}
+            {{ $right  := sub .Width .PadRight }}
             {{ $bottom := sub .Height .Pad }}
 
             <!-- Axes -->
             <path d="M {{ $left }} {{ $top }} L {{ $left }} {{ $bottom }} L {{ $right }} {{ $bottom }}"
                   fill="none" stroke="currentColor" opacity="0.35"/>
+
+            <!-- Y axis label ("Wins"), rotated -->
+            {{ $yMid := divf .Height 2.0 }}
+            {{ $yLabelX := sub .Pad 32.0 }}
+            <text x="{{ $yLabelX }}" y="{{ $yMid }}"
+                  transform="rotate(-90, {{ $yLabelX }}, {{ $yMid }})"
+                  text-anchor="middle" fill="currentColor" opacity="0.45" font-size="12">Wins</text>
 
             <!-- Y gridlines + labels -->
             {{ range .YTicks }}
@@ -33,14 +39,18 @@
                 </text>
             {{ end }}
 
+            <!-- X axis label ("Week") -->
+            <text x="{{ divf (add $left $right) 2.0 }}" y="{{ add $bottom 34 }}"
+                  text-anchor="middle" fill="currentColor" opacity="0.45" font-size="12">Week</text>
+
             <!-- Series lines -->
-            {{ range $i, $s := .Series }}
-                <path d="{{ $s.Path }}" fill="none" stroke="{{ $s.Color }}"
-                      stroke-width="3" opacity="0.90"/>
+            {{ range .Series }}
+                <path d="{{ .Path }}" fill="none" stroke="{{ .Color }}"
+                      stroke-width="2.5" opacity="0.90"/>
             {{ end }}
 
-            <!-- Series markers -->
-            {{ range $i, $s := .Series }}
+            <!-- Series markers + tooltips -->
+            {{ range $s := .Series }}
                 {{ range $p := $s.Points }}
                     <circle cx="{{ $p.X }}" cy="{{ $p.Y }}" r="3.5" fill="{{ $s.Color }}" opacity="0.95">
                         <title>{{ $p.Title }}</title>
@@ -48,17 +58,25 @@
                 {{ end }}
             {{ end }}
 
+            <!-- End-of-line labels -->
+            {{ range .Series }}
+                {{ if .EndLabel }}
+                    <text x="{{ add .LastX 10.0 }}" y="{{ add .LastY 4.0 }}"
+                          fill="{{ .Color }}" font-size="11" opacity="0.9">{{ .EndLabel }}</text>
+                {{ end }}
+            {{ end }}
+
         </svg>
 
         <!-- Legend -->
-        <ul class="hint" style="margin-top:12px; padding-left: 18px;">
+        <div style="display:flex; flex-wrap:wrap; gap:16px; margin-top:10px; padding-left:4px;">
             {{ range .Series }}
-                <li style="display:flex; align-items:center; gap:8px;">
-                    <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background: {{ .Color }};"></span>
+                <div style="display:flex; align-items:center; gap:8px; font-size:0.88rem;">
+                    <span style="display:inline-block; width:20px; height:3px; border-radius:2px; background:{{ .Color }};"></span>
                     {{ .Name }}
-                </li>
+                </div>
             {{ end }}
-        </ul>
+        </div>
 
     {{ else }}
 

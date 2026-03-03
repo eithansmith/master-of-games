@@ -30,8 +30,9 @@ type RendererConfig struct {
 
 func NewRenderer(cfg RendererConfig) *Renderer {
 	funcs := template.FuncMap{
-		"add": func(a, b float64) float64 { return a + b },
-		"sub": func(a, b float64) float64 { return a - b },
+		"add":  func(a, b float64) float64 { return a + b },
+		"sub":  func(a, b float64) float64 { return a - b },
+		"divf": func(a, b float64) float64 { return a / b },
 		"derefInt": func(p *int) int {
 			if p == nil {
 				return 0

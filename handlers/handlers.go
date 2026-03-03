@@ -556,17 +556,19 @@ func (s *Server) handleYearRaceChart(w http.ResponseWriter, r *http.Request) {
 
 func buildYearRaceChartVM(race game.YearRace) yearRaceChartVM {
 	const (
-		w   = 900.0
-		h   = 420.0
-		pad = 44.0
+		w        = 1000.0
+		h        = 440.0
+		pad      = 44.0
+		padRight = 160.0 // extra room for end-of-line labels
 	)
 
 	vm := yearRaceChartVM{
-		SvgView: fmt.Sprintf("0 0 %.0f %.0f", w, h),
-		Width:   w,
-		Height:  h,
-		Pad:     pad,
-		Weeks:   race.Weeks,
+		SvgView:  fmt.Sprintf("0 0 %.0f %.0f", w, h),
+		Width:    w,
+		Height:   h,
+		Pad:      pad,
+		PadRight: padRight,
+		Weeks:    race.Weeks,
 	}
 
 	// Max value across all series
@@ -599,7 +601,7 @@ func buildYearRaceChartVM(race game.YearRace) yearRaceChartVM {
 	vm.Max = axisMax
 
 	n := len(race.Weeks)
-	plotW := w - 2*pad
+	plotW := w - pad - padRight
 	plotH := h - 2*pad
 
 	xAt := func(i int) float64 {
@@ -694,6 +696,13 @@ func buildYearRaceChartVM(race game.YearRace) yearRaceChartVM {
 			} else {
 				ser.Path += fmt.Sprintf(" L %.2f %.2f", x, y)
 			}
+		}
+
+		if len(ser.Points) > 0 {
+			last := ser.Points[len(ser.Points)-1]
+			ser.LastX = last.X
+			ser.LastY = last.Y
+			ser.EndLabel = fmt.Sprintf("%s (%.0f)", ser.Name, s.Values[len(s.Values)-1])
 		}
 
 		vm.Series = append(vm.Series, ser)

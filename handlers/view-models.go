@@ -99,10 +99,11 @@ type YearRaceVM struct {
 }
 
 type yearRaceChartVM struct {
-	SvgView string
-	Width   float64
-	Height  float64
-	Pad     float64
+	SvgView  string
+	Width    float64
+	Height   float64
+	Pad      float64
+	PadRight float64
 
 	Weeks []int
 	Max   float64
@@ -124,7 +125,10 @@ type yearRaceSeriesVM struct {
 	Color template.CSS
 	Path  string // SVG path "d"
 
-	Points []yearRacePointVM
+	Points   []yearRacePointVM
+	EndLabel string  // "Name (N)" rendered at the last data point
+	LastX    float64 // x coordinate of last point
+	LastY    float64 // y coordinate of last point
 }
 
 type yearRacePointVM struct {
