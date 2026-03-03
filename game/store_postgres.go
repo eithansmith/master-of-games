@@ -111,6 +111,7 @@ func (s *PostgresStore) GetWeek(year, week int) ([]Game, error) {
 		  FROM app.games g
 		  JOIN app.titles t ON t.id = g.title_id
 		 WHERE EXTRACT(YEAR FROM g.played_at) = $1 AND EXTRACT(WEEK FROM g.played_at) = $2
+		   AND g.is_active = true
 		 ORDER BY g.played_at, g.id`
 
 	rows, err := s.db.Query(ctx, q, year, week)
@@ -142,6 +143,7 @@ func (s *PostgresStore) GetYear(year int) ([]Game, error) {
 		  FROM app.games g
 		  JOIN app.titles t ON t.id = g.title_id
 		 WHERE EXTRACT(YEAR FROM g.played_at) = $1
+		   AND g.is_active = true
 		 ORDER BY g.played_at, g.id`
 
 	rows, err := s.db.Query(ctx, q, year)
