@@ -87,7 +87,7 @@
                     <div class="list-item">
                         <div class="li-main">
                             <div class="li-title">{{ .Title }} {{ if not .IsActive }}<span
-                                        class="pill">Retired</span>{{ end }}</div>
+                                        class="pill">Inactive</span>{{ end }}</div>
                             <div class="li-sub">{{ .PlayedAt.Format "2006-01-02 15:04" }}</div>
                             <div class="li-sub">
                                 Winners:
@@ -100,15 +100,18 @@
                                 <div class="li-sub">Notes: {{ .Notes }}</div>
                             {{ end }}
                         </div>
-                        <form hx-post="/games/{{ .ID }}/toggle" hx-target="#main" hx-swap="innerHTML" method="post">
+                        <form hx-post="/games/{{ .ID }}/toggle"
+                              hx-on--after-request="window.location.reload()"
+                              hx-swap="none"
+                              hx-confirm="Are you sure?"
+                              method="post"
+                        >
                             {{ if .IsActive }}<input type="hidden" name="active" value="0">
-                            <button class="btn danger" type="submit" title="Deactivate"
-                                    hx-confirm="Are you sure you want to deactivate this game?">Deactivate
-                            </button>{{ else }}
+                            <button class="btn danger" type="submit" title="Deactivate">Deactivate</button>
+                            {{ else }}
                                 <input type="hidden" name="active" value="1">
-                                <button class="btn secondary" type="submit" title="Activate"
-                                        hx-confirm="Are you sure you want to activate this game?">Activate
-                                </button>{{ end }}
+                                <button class="btn secondary" type="submit" title="Activate">Activate</button>
+                            {{ end }}
                         </form>
                     </div>
                 {{ end }}

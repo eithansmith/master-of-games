@@ -50,6 +50,17 @@ h1 {
     margin-top: 12px;
 }
 
+button:not(:disabled),
+input[type="submit"]:not(:disabled),
+input[type="button"]:not(:disabled) {
+    cursor: pointer;
+}
+
+button:disabled,
+input[type="submit"]:disabled {
+    cursor: not-allowed;
+}
+
 .btn {
     display: inline-block;
     padding: 10px 14px;

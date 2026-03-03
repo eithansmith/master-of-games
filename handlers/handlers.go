@@ -12,7 +12,7 @@ import (
 	"github.com/eithansmith/master-of-games/game"
 )
 
-func (s *Server) newHomeVM(showAllGames bool) (HomeVM, error) {
+func (s *Server) newHomeVM() (HomeVM, error) {
 	allPlayers, err := s.store.ListPlayers()
 	if err != nil {
 		return HomeVM{}, err
@@ -55,18 +55,9 @@ func (s *Server) newHomeVM(showAllGames bool) (HomeVM, error) {
 			if err != nil {
 				return nil
 			}
-			if showAllGames {
-				return gs
-			}
-			out := make([]game.Game, 0, len(gs))
-			for _, g := range gs {
-				if g.IsActive {
-					out = append(out, g)
-				}
-			}
-			return out
+			return gs
 		}(),
-		ShowAllGames: showAllGames,
+		ShowAllGames: true,
 		Form:         s.defaultHomeForm(players, titles),
 	}
 	return vm, nil
@@ -87,9 +78,8 @@ func (s *Server) defaultHomeForm(_ []game.Player, _ []game.Title) HomeForm {
 	}
 }
 
-func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
-	showAll := r.URL.Query().Get("all") == "1"
-	vm, err := s.newHomeVM(showAll)
+func (s *Server) handleHome(w http.ResponseWriter, _ *http.Request) {
+	vm, err := s.newHomeVM()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -208,7 +198,7 @@ func (s *Server) handleAddGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// HTMX will swap #main, but a redirect works fine too.
-	vm, err := s.newHomeVM(false)
+	vm, err := s.newHomeVM()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -232,7 +222,7 @@ func (s *Server) handleDeleteGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	vm, err := s.newHomeVM(false)
+	vm, err := s.newHomeVM()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -260,7 +250,7 @@ func (s *Server) handleGameToggle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	vm, err := s.newHomeVM(false)
+	vm, err := s.newHomeVM()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -924,7 +914,7 @@ func (s *Server) handleTitleDelete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) renderHomeWithError(w http.ResponseWriter, msg string, form HomeForm) {
-	vm, err := s.newHomeVM(false)
+	vm, err := s.newHomeVM()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
