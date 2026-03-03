@@ -7,7 +7,29 @@ import (
 	"sort"
 	"strconv"
 	"time"
+
+	"github.com/eithansmith/master-of-games/game"
 )
+
+func activePlayers(all []game.Player) []game.Player {
+	out := make([]game.Player, 0, len(all))
+	for _, p := range all {
+		if p.IsActive {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+func activeTitles(all []game.Title) []game.Title {
+	out := make([]game.Title, 0, len(all))
+	for _, t := range all {
+		if t.IsActive {
+			out = append(out, t)
+		}
+	}
+	return out
+}
 
 // pathInt reads an integer path parameter from Go's ServeMux patterns.
 func pathInt(r *http.Request, key string) (int, bool) {

@@ -24,18 +24,8 @@ func (s *Server) newHomeVM(ctx context.Context) (HomeVM, error) {
 		return HomeVM{}, err
 	}
 
-	players := make([]game.Player, 0, len(allPlayers))
-	for _, p := range allPlayers {
-		if p.IsActive {
-			players = append(players, p)
-		}
-	}
-	titles := make([]game.Title, 0, len(allTitles))
-	for _, t := range allTitles {
-		if t.IsActive {
-			titles = append(titles, t)
-		}
-	}
+	players := activePlayers(allPlayers)
+	titles := activeTitles(allTitles)
 
 	pMap := make(map[int64]string, len(allPlayers))
 	for _, p := range allPlayers {
@@ -102,18 +92,8 @@ func (s *Server) handleAddGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	players := make([]game.Player, 0, len(allPlayers))
-	for _, p := range allPlayers {
-		if p.IsActive {
-			players = append(players, p)
-		}
-	}
-	titles := make([]game.Title, 0, len(allTitles))
-	for _, t := range allTitles {
-		if t.IsActive {
-			titles = append(titles, t)
-		}
-	}
+	players := activePlayers(allPlayers)
+	titles := activeTitles(allTitles)
 
 	if err := r.ParseForm(); err != nil {
 		s.renderHomeWithError(r.Context(), w, "Invalid form submission.", s.defaultHomeForm(players, titles))
@@ -525,14 +505,7 @@ func (s *Server) handleYearRace(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	vm := struct {
-		Title     string
-		Version   string
-		BuildTime string
-		StartTime string
-		YearNow   int
-		Year      int
-	}{
+	vm := YearRaceVM{
 		Title:     "Year Race",
 		Version:   s.meta.Version,
 		BuildTime: s.meta.BuildTime,

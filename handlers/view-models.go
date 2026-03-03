@@ -88,6 +88,16 @@ type YearVM struct {
 	FormError string
 }
 
+type YearRaceVM struct {
+	Title     string
+	Version   string
+	BuildTime string
+	StartTime string
+	YearNow   int
+
+	Year int
+}
+
 type yearRaceChartVM struct {
 	SvgView string
 	Width   float64
