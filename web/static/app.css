@@ -119,6 +119,7 @@ input[type="submit"]:disabled {
 
 select, input[type="datetime-local"], input[type="text"], textarea {
     width: 100%;
+    min-width: 0; /* prevents datetime-local from overflowing its container on mobile */
     margin-top: 6px;
     padding: 10px 12px;
     border-radius: 12px;
