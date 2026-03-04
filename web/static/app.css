@@ -76,6 +76,11 @@ input[type="submit"]:disabled {
     background: #0f1621;
 }
 
+.btn.danger {
+    border-color: #7a2235;
+    color: #ff8099;
+}
+
 .footer {
     opacity: 0.7;
     padding-top: 6px;
@@ -95,6 +100,7 @@ select, input[type="datetime-local"], input[type="text"], textarea {
     border: 1px solid #2a3a50;
     background: #0b0f14;
     color: #e8eef6;
+    font-size: 1rem; /* prevents iOS Safari from auto-zooming on focus */
 }
 
 .grid2 {
@@ -189,6 +195,7 @@ select, input[type="datetime-local"], input[type="text"], textarea {
     color: #e8eef6;
     text-decoration: none;
     opacity: 0.85;
+    padding: 8px 4px; /* enlarges touch target toward 44px minimum */
 }
 
 .nav-link:hover {

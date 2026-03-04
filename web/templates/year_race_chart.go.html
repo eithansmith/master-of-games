@@ -2,7 +2,8 @@
 
     {{ if .Weeks }}
 
-        <svg viewBox="{{ .SvgView }}" style="width:100%; max-width:1000px; display:block;">
+        <div style="overflow-x:auto;">
+        <svg viewBox="{{ .SvgView }}" style="width:100%; min-width:640px; max-width:1000px; display:block;">
             {{ $left   := .Pad }}
             {{ $top    := .Pad }}
             {{ $right  := sub .Width .PadRight }}
@@ -17,14 +18,14 @@
             {{ $yLabelX := sub .Pad 32.0 }}
             <text x="{{ $yLabelX }}" y="{{ $yMid }}"
                   transform="rotate(-90, {{ $yLabelX }}, {{ $yMid }})"
-                  text-anchor="middle" fill="currentColor" opacity="0.45" font-size="12">Wins</text>
+                  text-anchor="middle" fill="currentColor" opacity="0.45" font-size="16">Wins</text>
 
             <!-- Y gridlines + labels -->
             {{ range .YTicks }}
                 <path d="M {{ $left }} {{ sub .Y 4 }} L {{ $right }} {{ sub .Y 4 }}"
                       fill="none" stroke="currentColor" opacity="0.10"/>
                 <text x="{{ .X }}" y="{{ .Y }}" text-anchor="end"
-                      fill="currentColor" opacity="0.55" font-size="12">
+                      fill="currentColor" opacity="0.55" font-size="16">
                     {{ .Label }}
                 </text>
             {{ end }}
@@ -34,14 +35,14 @@
                 <path d="M {{ .X }} {{ $bottom }} L {{ .X }} {{ add $bottom 6 }}"
                       fill="none" stroke="currentColor" opacity="0.25"/>
                 <text x="{{ .X }}" y="{{ .Y }}" text-anchor="middle"
-                      fill="currentColor" opacity="0.55" font-size="12">
+                      fill="currentColor" opacity="0.55" font-size="16">
                     {{ .Label }}
                 </text>
             {{ end }}
 
             <!-- X axis label ("Week") -->
             <text x="{{ divf (add $left $right) 2.0 }}" y="{{ add $bottom 34 }}"
-                  text-anchor="middle" fill="currentColor" opacity="0.45" font-size="12">Week</text>
+                  text-anchor="middle" fill="currentColor" opacity="0.45" font-size="16">Week</text>
 
             <!-- Series lines -->
             {{ range .Series }}
@@ -62,11 +63,13 @@
             {{ range .Series }}
                 {{ if .EndLabel }}
                     <text x="{{ add .LastX 10.0 }}" y="{{ add .LastY 4.0 }}"
-                          fill="{{ .Color }}" font-size="11" opacity="0.9">{{ .EndLabel }}</text>
+                          fill="{{ .Color }}" font-size="14" opacity="0.9">{{ .EndLabel }}</text>
                 {{ end }}
             {{ end }}
 
         </svg>
+
+        </div><!-- /overflow-x:auto -->
 
         <!-- Legend -->
         <div style="display:flex; flex-wrap:wrap; gap:16px; margin-top:10px; padding-left:4px;">
