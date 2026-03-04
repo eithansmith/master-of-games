@@ -739,7 +739,6 @@ func (s *Server) handlePlayersPost(w http.ResponseWriter, r *http.Request) {
 		s.renderPlayers(r.Context(), w, err.Error())
 		return
 	}
-	s.renderPlayers(r.Context(), w, "")
 	setToast(w, "Player added.")
 	s.renderPlayers(r.Context(), w, "")
 }
@@ -854,13 +853,12 @@ func (s *Server) handleTitles(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleTitlesPost(w http.ResponseWriter, r *http.Request) {
-	if err := addPlayer(r, s); err != nil {
-		s.renderPlayers(r.Context(), w, err.Error())
+	if err := addTitle(r, s); err != nil {
+		s.renderTitles(r.Context(), w, err.Error())
 		return
 	}
-	s.renderPlayers(r.Context(), w, "")
-	setToast(w, "Player added.")
-	s.renderPlayers(r.Context(), w, "")
+	setToast(w, "Title added.")
+	s.renderTitles(r.Context(), w, "")
 }
 
 func (s *Server) renderTitles(ctx context.Context, w http.ResponseWriter, errMsg string) {

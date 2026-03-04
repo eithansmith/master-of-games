@@ -208,3 +208,17 @@ func addPlayer(r *http.Request, s *Server) error {
 	}
 	return nil
 }
+
+func addTitle(r *http.Request, s *Server) error {
+	if err := r.ParseForm(); err != nil {
+		return errors.New("invalid form submission")
+	}
+	name := strings.TrimSpace(r.FormValue("name"))
+	if name == "" {
+		return errors.New("name is required")
+	}
+	if _, err := s.store.AddTitle(r.Context(), name); err != nil {
+		return err
+	}
+	return nil
+}
