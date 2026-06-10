@@ -1,0 +1,11 @@
+.git
+.github
+
+# Local build artifacts — never needed inside the image
+master-of-games
+*.exe
+
+# Editor / OS noise
+.idea
+.vscode
+*.DS_Store

@@ -1,0 +1,33 @@
+# Fly.io application configuration
+# Docs: https://fly.io/docs/reference/configuration/
+#
+# NOTE: The app name below must be unique across all of Fly.io.
+# If "master-of-games" is taken, run:
+#   flyctl launch --name <your-chosen-name>
+# and Fly will update this file with the name it reserves for you.
+
+app = 'master-of-games'
+primary_region = 'ord'
+
+[build]
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+
+  # Keep one machine running at all times — no cold starts.
+  auto_stop_machines  = 'off'
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval     = "30s"
+    method       = "GET"
+    path         = "/healthz"
+    timeout      = "5s"
+
+[[vm]]
+  cpu_kind = 'shared'
+  cpus     = 1
+  memory   = '256mb'
