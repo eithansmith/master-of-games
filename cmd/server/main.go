@@ -33,6 +33,10 @@ func main() {
 
 	store := game.NewPostgresStore(pool)
 
+	if err := bootstrapUser(context.Background(), store); err != nil {
+		log.Fatal(err)
+	}
+
 	s := handlers.New(store, pool, meta)
 
 	mux := http.NewServeMux()
@@ -45,7 +49,7 @@ func main() {
 
 	srv := &http.Server{
 		Addr:              ":" + addr,
-		Handler:           logging(handlers.BasicAuth(mux)),
+		Handler:           logging(handlers.SessionAuth(store)(mux)),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 

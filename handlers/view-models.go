@@ -157,3 +157,14 @@ type TitlesVM struct {
 	Titles    []game.Title
 	FormError string
 }
+
+type LoginVM struct {
+	Title     string
+	Version   string
+	BuildTime string
+	StartTime string
+	YearNow   int
+
+	Next      string
+	FormError string
+}

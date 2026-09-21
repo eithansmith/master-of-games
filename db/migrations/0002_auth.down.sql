@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS app.sessions;
+DROP TABLE IF EXISTS app.users;

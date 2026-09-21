@@ -14,6 +14,7 @@ type Renderer struct {
 	yearRaceChart *template.Template
 	players       *template.Template
 	titles        *template.Template
+	login         *template.Template
 }
 
 // RendererConfig centralizes template paths.
@@ -26,6 +27,7 @@ type RendererConfig struct {
 	YearRaceChart string
 	Players       string
 	Titles        string
+	Login         string
 }
 
 func NewRenderer(cfg RendererConfig) *Renderer {
@@ -61,6 +63,9 @@ func NewRenderer(cfg RendererConfig) *Renderer {
 		yearRaceChart: parse(cfg.Base, cfg.YearRaceChart),
 		players:       parse(cfg.Base, cfg.Players),
 		titles:        parse(cfg.Base, cfg.Titles),
+		// login.go.html is a standalone page - it doesn't extend base.go.html,
+		// so it isn't parsed alongside it.
+		login: parse(cfg.Login),
 	}
 }
 
@@ -82,6 +87,8 @@ func (r *Renderer) HTML(w http.ResponseWriter, layout, name string, data any) er
 		return r.players.ExecuteTemplate(w, layout, data)
 	case "titles":
 		return r.titles.ExecuteTemplate(w, layout, data)
+	case "login":
+		return r.login.ExecuteTemplate(w, layout, data)
 	default:
 		return errors.New("unknown template: " + name)
 	}

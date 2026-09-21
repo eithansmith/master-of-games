@@ -37,6 +37,13 @@ type Store interface {
 	// tiebreakers
 	GetTiebreaker(ctx context.Context, scope, scopeKey string) (game.Tiebreaker, bool, error)
 	SetTiebreaker(ctx context.Context, tb game.Tiebreaker) error
+
+	// auth
+	GetUserByUsername(ctx context.Context, username string) (game.User, bool, error)
+	CreateSession(ctx context.Context, sess game.Session) (game.Session, error)
+	GetSessionByTokenHash(ctx context.Context, tokenHash string) (game.Session, bool, error)
+	DeleteSession(ctx context.Context, tokenHash string) error
+	DeleteExpiredSessions(ctx context.Context) error
 }
 
 // Pinger is a simple interface for testing.

@@ -388,3 +388,95 @@ func (s *PostgresStore) SetTiebreaker(ctx context.Context, tb Tiebreaker) error 
 
 	return nil
 }
+
+// ============================
+// Auth
+// ============================
+
+func (s *PostgresStore) GetUserByUsername(ctx context.Context, username string) (User, bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	var u User
+	err := s.db.QueryRow(ctx,
+		`SELECT id, username, password_hash FROM app.users WHERE username = $1`,
+		username,
+	).Scan(&u.ID, &u.Username, &u.PasswordHash)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return User{}, false, nil
+		}
+		return User{}, false, fmt.Errorf("GetUserByUsername: %w", err)
+	}
+	return u, true, nil
+}
+
+func (s *PostgresStore) CreateUser(ctx context.Context, username, passwordHash string) error {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	_, err := s.db.Exec(ctx,
+		`INSERT INTO app.users (username, password_hash) VALUES ($1, $2) ON CONFLICT (username) DO NOTHING`,
+		username, passwordHash,
+	)
+	if err != nil {
+		return fmt.Errorf("CreateUser: %w", err)
+	}
+	return nil
+}
+
+func (s *PostgresStore) CreateSession(ctx context.Context, sess Session) (Session, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	err := s.db.QueryRow(ctx,
+		`INSERT INTO app.sessions (user_id, token_hash, expires_at)
+		 VALUES ($1, $2, $3)
+		 RETURNING id`,
+		sess.UserID, sess.TokenHash, sess.ExpiresAt,
+	).Scan(&sess.ID)
+	if err != nil {
+		return Session{}, fmt.Errorf("CreateSession: %w", err)
+	}
+	return sess, nil
+}
+
+func (s *PostgresStore) GetSessionByTokenHash(ctx context.Context, tokenHash string) (Session, bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	var sess Session
+	err := s.db.QueryRow(ctx,
+		`SELECT id, user_id, token_hash, expires_at FROM app.sessions WHERE token_hash = $1`,
+		tokenHash,
+	).Scan(&sess.ID, &sess.UserID, &sess.TokenHash, &sess.ExpiresAt)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return Session{}, false, nil
+		}
+		return Session{}, false, fmt.Errorf("GetSessionByTokenHash: %w", err)
+	}
+	return sess, true, nil
+}
+
+func (s *PostgresStore) DeleteSession(ctx context.Context, tokenHash string) error {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	_, err := s.db.Exec(ctx, `DELETE FROM app.sessions WHERE token_hash = $1`, tokenHash)
+	if err != nil {
+		return fmt.Errorf("DeleteSession: %w", err)
+	}
+	return nil
+}
+
+func (s *PostgresStore) DeleteExpiredSessions(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	_, err := s.db.Exec(ctx, `DELETE FROM app.sessions WHERE expires_at < now()`)
+	if err != nil {
+		return fmt.Errorf("DeleteExpiredSessions: %w", err)
+	}
+	return nil
+}

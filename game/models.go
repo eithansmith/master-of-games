@@ -37,3 +37,16 @@ type Tiebreaker struct {
 	Method        string // "chance"
 	DecidedAt     time.Time
 }
+
+type User struct {
+	ID           int64
+	Username     string
+	PasswordHash string
+}
+
+type Session struct {
+	ID        int64
+	UserID    int64
+	TokenHash string
+	ExpiresAt time.Time
+}

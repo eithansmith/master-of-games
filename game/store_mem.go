@@ -6,18 +6,24 @@ import (
 	"sort"
 	"sync"
 	"time"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 type MemoryStore struct {
 	mu sync.Mutex
 
-	nextGameID   int64
-	nextPlayerID int64
-	nextTitleID  int64
+	nextGameID    int64
+	nextPlayerID  int64
+	nextTitleID   int64
+	nextUserID    int64
+	nextSessionID int64
 
-	games   []Game
-	players []Player
-	titles  []Title
+	games    []Game
+	players  []Player
+	titles   []Title
+	users    []User
+	sessions []Session
 
 	tiebreakers map[string]Tiebreaker // key = scope + "|" + scopeKey
 }
@@ -25,10 +31,12 @@ type MemoryStore struct {
 //goland:noinspection GoUnusedExportedFunction
 func NewMemoryStore() *MemoryStore {
 	s := &MemoryStore{
-		nextGameID:   1,
-		nextPlayerID: 1,
-		nextTitleID:  1,
-		tiebreakers:  map[string]Tiebreaker{},
+		nextGameID:    1,
+		nextPlayerID:  1,
+		nextTitleID:   1,
+		nextUserID:    1,
+		nextSessionID: 1,
+		tiebreakers:   map[string]Tiebreaker{},
 	}
 
 	// Seed with the historical hardcoded lists.
@@ -37,6 +45,12 @@ func NewMemoryStore() *MemoryStore {
 	}
 	for _, name := range SeedTitles {
 		_, _ = s.AddTitle(context.Background(), name)
+	}
+
+	// Seed a dev user (username "dev", password "dev") so local `go run`
+	// without Postgres still has a working login.
+	if hash, err := bcrypt.GenerateFromPassword([]byte("dev"), bcrypt.DefaultCost); err == nil {
+		_ = s.CreateUser(context.Background(), "dev", string(hash))
 	}
 
 	return s
@@ -303,5 +317,85 @@ func (s *MemoryStore) SetTiebreaker(_ context.Context, tb Tiebreaker) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.tiebreakers[tbKey(tb.Scope, tb.ScopeKey)] = tb
+	return nil
+}
+
+// ============================
+// Auth
+// ============================
+
+func (s *MemoryStore) GetUserByUsername(_ context.Context, username string) (User, bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for _, u := range s.users {
+		if u.Username == username {
+			return u, true, nil
+		}
+	}
+	return User{}, false, nil
+}
+
+func (s *MemoryStore) CreateUser(_ context.Context, username, passwordHash string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for _, u := range s.users {
+		if u.Username == username {
+			return nil
+		}
+	}
+	s.users = append(s.users, User{ID: s.nextUserID, Username: username, PasswordHash: passwordHash})
+	s.nextUserID++
+	return nil
+}
+
+func (s *MemoryStore) CreateSession(_ context.Context, sess Session) (Session, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	sess.ID = s.nextSessionID
+	s.nextSessionID++
+	s.sessions = append(s.sessions, sess)
+	return sess, nil
+}
+
+func (s *MemoryStore) GetSessionByTokenHash(_ context.Context, tokenHash string) (Session, bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for _, sess := range s.sessions {
+		if sess.TokenHash == tokenHash {
+			return sess, true, nil
+		}
+	}
+	return Session{}, false, nil
+}
+
+func (s *MemoryStore) DeleteSession(_ context.Context, tokenHash string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for i := range s.sessions {
+		if s.sessions[i].TokenHash == tokenHash {
+			s.sessions = append(s.sessions[:i], s.sessions[i+1:]...)
+			return nil
+		}
+	}
+	return nil
+}
+
+func (s *MemoryStore) DeleteExpiredSessions(_ context.Context) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	out := s.sessions[:0]
+	now := time.Now()
+	for _, sess := range s.sessions {
+		if sess.ExpiresAt.After(now) {
+			out = append(out, sess)
+		}
+	}
+	s.sessions = out
 	return nil
 }

@@ -117,7 +117,7 @@ input[type="submit"]:disabled {
     margin-top: 10px;
 }
 
-select, input[type="datetime-local"], input[type="text"], textarea {
+select, input[type="datetime-local"], input[type="text"], input[type="password"], textarea {
     width: 100%;
     min-width: 0; /* prevents datetime-local from overflowing its container on mobile */
     margin-top: 6px;

@@ -30,6 +30,7 @@ func New(store Store, db Pinger, meta Meta) *Server {
 		YearRaceChart: "web/templates/year_race_chart.go.html",
 		Players:       "web/templates/players.go.html",
 		Titles:        "web/templates/titles.go.html",
+		Login:         "web/templates/login.go.html",
 	})
 
 	return &Server{
@@ -42,6 +43,11 @@ func New(store Store, db Pinger, meta Meta) *Server {
 
 // RegisterRoutes attaches all application routes to the provided mux.
 func (s *Server) RegisterRoutes(mux *http.ServeMux) {
+	// Auth
+	mux.HandleFunc("GET /login", s.handleLoginPage)
+	mux.HandleFunc("POST /login", s.handleLoginSubmit)
+	mux.HandleFunc("POST /logout", s.handleLogout)
+
 	// Home
 	mux.HandleFunc("GET /", s.handleHome)
 

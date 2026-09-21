@@ -1,0 +1,41 @@
+{{ define "login" }}
+    <!doctype html>
+    <html lang="en">
+    <head>
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1"/>
+        <title>{{ .Title }}</title>
+        <link rel="stylesheet" href="/static/app.css"/>
+    </head>
+    <body>
+    <main class="container" style="max-width: 360px; margin-top: 10vh;">
+        <section class="card">
+            <h1>🏆 Master of Games</h1>
+
+            {{ if .FormError }}
+                <div class="alert">{{ .FormError }}</div>
+            {{ end }}
+
+            <form method="post" action="/login" style="display:flex; flex-direction:column; gap: 10px;">
+                <input type="hidden" name="next" value="{{ .Next }}">
+                <label>
+                    Username
+                    <input type="text" name="username" required autofocus>
+                </label>
+                <label>
+                    Password
+                    <input type="password" name="password" required>
+                </label>
+                <button class="btn" type="submit">Sign in</button>
+            </form>
+        </section>
+
+        <footer class="footer">
+            version: {{ .Version }}<br>
+            {{ if ne .BuildTime "" }}built: {{ .BuildTime }}<br>{{ end }}
+            started: {{ .StartTime }}
+        </footer>
+    </main>
+    </body>
+    </html>
+{{ end }}

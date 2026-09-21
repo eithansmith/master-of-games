@@ -29,19 +29,19 @@ A lightweight web app for tracking lunchtime board game results. Log games, trac
 
 ### Environment variables
 
-| Variable          | Default    | Notes                        |
-|-------------------|------------|------------------------------|
-| `DATABASE_URL`    | (required) | PostgreSQL connection string |
-| `PORT`            | `8080`     | Listen port                  |
-| `BASIC_AUTH_USER` | (required) | HTTP Basic Auth username     |
-| `BASIC_AUTH_PASS` | (required) | HTTP Basic Auth password     |
+| Variable         | Default    | Notes                                                          |
+|------------------|------------|-----------------------------------------------------------------|
+| `DATABASE_URL`   | (required) | PostgreSQL connection string                                    |
+| `PORT`           | `8080`     | Listen port                                                      |
+| `BOOTSTRAP_USER` | (optional) | Username to create on first run, if no users exist yet          |
+| `BOOTSTRAP_PASS` | (optional) | Password for the bootstrap user (hashed with bcrypt before storage) |
 
-If `BASIC_AUTH_USER` or `BASIC_AUTH_PASS` are missing the server fails closed (returns 500 on all requests except `/healthz`).
+Auth is a single-user login backed by `app.users`/`app.sessions` (see [Architecture](CLAUDE.md)). If no user exists yet, login always fails until one is created — either via `BOOTSTRAP_USER`/`BOOTSTRAP_PASS` on startup, or by inserting a row directly.
 
 ### Run
 
 ```bash
-DATABASE_URL=postgres://... BASIC_AUTH_USER=admin BASIC_AUTH_PASS=secret go run ./cmd/server
+DATABASE_URL=postgres://... BOOTSTRAP_USER=admin BOOTSTRAP_PASS=secret go run ./cmd/server
 ```
 
 ### Build
@@ -85,6 +85,9 @@ Tiebreakers are stored in `app.tiebreakers` as JSON keyed by `(scope, scope_key)
 
 | Method | Path                            | Description                        |
 |--------|---------------------------------|------------------------------------|
+| GET    | `/login`                        | Login page                         |
+| POST   | `/login`                        | Submit credentials, start a session |
+| POST   | `/logout`                       | End the session                    |
 | GET    | `/`                             | Home — log a game, recent games    |
 | POST   | `/games`                        | Add a game                         |
 | POST   | `/games/{id}/toggle`            | Activate / deactivate a game       |
