@@ -62,6 +62,13 @@ go test ./...
 go vet ./...
 ```
 
+## Deployment
+
+The app runs on [Render](https://render.com). Render's free tier spins the service down after a period of
+inactivity, so [`.github/workflows/keep-warm.yml`](.github/workflows/keep-warm.yml) pings `/healthz` every 10 minutes
+during a window around lunch (weekdays only) to keep it warm for when scores actually get logged, without pinging
+around the clock.
+
 ## Project structure
 
 ```
