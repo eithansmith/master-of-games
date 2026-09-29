@@ -65,9 +65,13 @@ go vet ./...
 ## Deployment
 
 The app runs on [Render](https://render.com). Render's free tier spins the service down after a period of
-inactivity, so [`.github/workflows/keep-warm.yml`](.github/workflows/keep-warm.yml) pings `/healthz` every 10 minutes
-during a window around lunch (weekdays only) to keep it warm for when scores actually get logged, without pinging
-around the clock.
+inactivity, so an external [cron-job.org](https://cron-job.org) job pings `/healthz` every 10 minutes during a
+window around lunch (weekdays only, Central time) to keep it warm for when scores actually get logged, without
+pinging around the clock. That schedule lives in the cron-job.org dashboard, not in this repo — GitHub Actions'
+own `schedule:` trigger was tried first but proved unreliable (silently dropped most runs, fired the rest hours
+late) and was dropped in favor of a service built for exact-time pings.
+[`.github/workflows/keep-warm.yml`](.github/workflows/keep-warm.yml) still exists as a manual `workflow_dispatch`
+button for an on-demand wake-up/test, not as the scheduled mechanism.
 
 ## Project structure
 

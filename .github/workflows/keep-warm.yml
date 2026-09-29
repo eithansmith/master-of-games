@@ -1,12 +1,12 @@
-name: Keep Render app warm
+name: Ping Render app (manual)
 
+# NOT the keep-warm mechanism - GitHub Actions' `schedule:` trigger turned out
+# to be unreliable for this (see git history: it silently dropped almost all
+# runs and fired the rest hours late, outside the configured window). The
+# real keep-warm ping is an external cron-job.org job hitting /healthz on a
+# schedule set in that dashboard, not in this repo. This workflow is kept
+# only as a manual button for an on-demand wake-up/test.
 on:
-  # Covers ~11am-2pm CDT / ~10am-1pm CST (16:00-19:59 UTC), so the actual
-  # 11:30am-1:30pm Central lunch window is covered year-round without
-  # needing separate DST-aware schedules. Weekdays only, matching the
-  # app's own weekday-only game rule.
-  schedule:
-    - cron: '*/10 16-19 * * 1-5'
   workflow_dispatch: {}
 
 jobs:
